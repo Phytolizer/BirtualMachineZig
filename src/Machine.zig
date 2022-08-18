@@ -9,8 +9,8 @@ const programCapacity = 1024;
 
 stack: [stackCapacity]Word = undefined,
 stackSize: usize = 0,
-program: [programCapacity]Instruction,
-programSize: usize,
+program: [programCapacity]Instruction = undefined,
+programSize: usize = 0,
 ip: Word = 0,
 halt: bool = false,
 
@@ -21,7 +21,6 @@ pub fn initFromMemory(program: []const Instruction) !Self {
         return error.ProgramTooLong;
     }
     var result = Self{
-        .program = undefined,
         .programSize = program.len,
     };
     std.mem.copy(Instruction, &result.program, program);
@@ -40,7 +39,6 @@ pub fn initFromFile(filePath: []const u8) !Self {
     }
 
     var result = Self{
-        .program = undefined,
         .programSize = stat.size / @sizeOf(Instruction),
     };
 
@@ -58,6 +56,9 @@ pub fn executeInstruction(self: *Self) !void {
     }
     const instruction = self.program[@intCast(usize, self.ip)];
     switch (instruction) {
+        .Nop => {
+            self.ip += 1;
+        },
         .Push => |operand| {
             if (self.stackSize == stackCapacity) {
                 return error.StackOverflow;
@@ -165,4 +166,11 @@ pub fn dumpStack(self: *const Self, comptime Writer: type, writer: Writer) !void
     } else {
         try writer.print("  [empty]\n", .{});
     }
+}
+
+pub fn saveProgramToFile(self: *const Self, filePath: []const u8) !void {
+    var file = try std.fs.cwd().createFile(filePath, .{});
+    defer file.close();
+
+    try file.writeAll(@ptrCast([*]const u8, &self.program[0])[0..(self.programSize * @sizeOf(Instruction))]);
 }
