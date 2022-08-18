@@ -28,6 +28,30 @@ pub fn initFromMemory(program: []const Instruction) !Self {
     return result;
 }
 
+pub fn initFromFile(filePath: []const u8) !Self {
+    var file = try std.fs.cwd().openFile(filePath, .{});
+    defer file.close();
+    const stat = try file.stat();
+    if (stat.size % @sizeOf(Instruction) != 0) {
+        return error.InvalidProgramFile;
+    }
+    if (stat.size > programCapacity * @sizeOf(Instruction)) {
+        return error.ProgramTooLong;
+    }
+
+    var result = Self{
+        .program = undefined,
+        .programSize = stat.size / @sizeOf(Instruction),
+    };
+
+    const nread = try file.read(@ptrCast([*]u8, &result.program)[0..stat.size]);
+    if (nread != stat.size) {
+        return error.IOFailed;
+    }
+
+    return result;
+}
+
 pub fn executeInstruction(self: *Self) !void {
     if (self.ip < 0 or self.ip >= self.programSize) {
         return error.IllegalAccess;
