@@ -1,10 +1,11 @@
 const std = @import("std");
-const string = @import("string.zig");
-const defs = @import("defs.zig");
+const libbm = @import("bm");
+const defs = libbm.defs;
+const string = libbm.string;
+const file = libbm.file;
 
-const Allocator = std.mem.Allocator;
-const Machine = @import("Machine.zig");
-const Instruction = @import("instruction.zig").Instruction;
+const Machine = libbm.Machine;
+const Instruction = libbm.instruction.Instruction;
 const Word = defs.Word;
 
 const executionLimit = defs.executionLimit;
@@ -49,14 +50,6 @@ fn translateSource(source: []const u8, program: []Instruction) !usize {
     return programSize;
 }
 
-fn slurpFile(filePath: []const u8, allocator: Allocator) ![]u8 {
-    var file = try std.fs.cwd().openFile(filePath, .{});
-    defer file.close();
-    const stat = try file.stat();
-    const fileSize = stat.size;
-    return try file.readToEndAlloc(allocator, fileSize);
-}
-
 pub fn main() !void {
     var gpAllocator = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpAllocator.backing_allocator;
@@ -72,7 +65,7 @@ pub fn main() !void {
     const outputFilePath = args[2];
 
     var bm = Machine{};
-    var sourceCode = try slurpFile(inputFilePath, allocator);
+    var sourceCode = try file.slurp(inputFilePath, allocator);
     defer allocator.free(sourceCode);
     bm.programSize = try translateSource(sourceCode, &bm.program);
     try bm.saveProgramToFile(outputFilePath);
