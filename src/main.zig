@@ -7,7 +7,8 @@ const program = [_]Instruction{
     .{ .Push = 69 },
     .{ .Push = 420 },
     .Plus,
-    .Plus,
+    .{ .Push = 42 },
+    .Minus,
 };
 
 pub fn main() !void {

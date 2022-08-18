@@ -27,6 +27,13 @@ pub fn executeInstruction(self: *Self, instruction: Instruction) !void {
             self.stack[self.stackSize - 2] += self.stack[self.stackSize - 1];
             self.stackSize -= 1;
         },
+        .Minus => {
+            if (self.stackSize < 2) {
+                return error.StackUnderflow;
+            }
+            self.stack[self.stackSize - 2] -= self.stack[self.stackSize - 1];
+            self.stackSize -= 1;
+        },
     }
 }
 
