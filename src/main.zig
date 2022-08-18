@@ -61,7 +61,7 @@ pub fn main() !void {
     var gpAllocator = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpAllocator.backing_allocator;
     var args = try std.process.argsAlloc(allocator);
-    defer allocator.free(args);
+    defer std.process.argsFree(allocator, args);
     if (args.len < 3) {
         std.debug.print("Usage: {s} <input.basm> <output.bm>\n", .{args[0]});
         std.debug.print("ERROR: expected input and output\n", .{});
