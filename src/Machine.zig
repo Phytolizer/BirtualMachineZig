@@ -42,11 +42,25 @@ pub fn executeInstruction(self: *Self) !void {
             self.stackSize += 1;
             self.ip += 1;
         },
+        .Dup => |distance| {
+            if (distance < 0) {
+                return error.IllegalOperand;
+            }
+            if (self.stackSize - @intCast(usize, distance) < 0) {
+                return error.StackUnderflow;
+            }
+            if (self.stackSize == stackCapacity) {
+                return error.StackOverflow;
+            }
+            self.stack[self.stackSize] = self.stack[self.stackSize - 1 - @intCast(usize, distance)];
+            self.stackSize += 1;
+            self.ip += 1;
+        },
         .Plus => {
             if (self.stackSize < 2) {
                 return error.StackUnderflow;
             }
-            self.stack[self.stackSize - 2] = self.stack[self.stackSize - 2] + self.stack[self.stackSize - 1];
+            self.stack[self.stackSize - 2] = self.stack[self.stackSize - 2] +% self.stack[self.stackSize - 1];
             self.stackSize -= 1;
             self.ip += 1;
         },
@@ -54,7 +68,7 @@ pub fn executeInstruction(self: *Self) !void {
             if (self.stackSize < 2) {
                 return error.StackUnderflow;
             }
-            self.stack[self.stackSize - 2] = self.stack[self.stackSize - 2] - self.stack[self.stackSize - 1];
+            self.stack[self.stackSize - 2] = self.stack[self.stackSize - 2] -% self.stack[self.stackSize - 1];
             self.stackSize -= 1;
             self.ip += 1;
         },
@@ -62,7 +76,7 @@ pub fn executeInstruction(self: *Self) !void {
             if (self.stackSize < 2) {
                 return error.StackUnderflow;
             }
-            self.stack[self.stackSize - 2] = self.stack[self.stackSize - 2] * self.stack[self.stackSize - 1];
+            self.stack[self.stackSize - 2] = self.stack[self.stackSize - 2] *% self.stack[self.stackSize - 1];
             self.stackSize -= 1;
             self.ip += 1;
         },
@@ -80,8 +94,36 @@ pub fn executeInstruction(self: *Self) !void {
         .Jump => |dest| {
             self.ip = dest;
         },
+        .JumpIf => |dest| {
+            if (self.stackSize < 1) {
+                return error.StackUnderflow;
+            }
+            if (self.stack[self.stackSize - 1] != 0) {
+                self.ip = dest;
+            } else {
+                self.ip += 1;
+            }
+            self.stackSize -= 1;
+        },
+        .Eq => {
+            if (self.stackSize < 2) {
+                return error.StackUnderflow;
+            }
+            const value = self.stack[self.stackSize - 2] == self.stack[self.stackSize - 1];
+            self.stack[self.stackSize - 2] = if (value) 1 else 0;
+            self.stackSize -= 1;
+            self.ip += 1;
+        },
         .Halt => {
             self.halt = true;
+        },
+        .PrintDebug => {
+            if (self.stackSize < 1) {
+                return error.StackUnderflow;
+            }
+            std.debug.print("{d}\n", .{self.stack[self.stackSize - 1]});
+            self.stackSize -= 1;
+            self.ip += 1;
         },
     }
 }

@@ -7,9 +7,10 @@ const executionLimit = @import("defs.zig").executionLimit;
 const program = [_]Instruction{
     .{ .Push = 0 },
     .{ .Push = 1 },
+    .{ .Dup = 1 },
+    .{ .Dup = 1 },
     .Plus,
-    .{ .Jump = 1 },
-    .Halt,
+    .{ .Jump = 2 },
 };
 
 pub fn main() !void {
