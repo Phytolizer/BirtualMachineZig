@@ -8,4 +8,6 @@ pub const Instruction = union(enum) {
     Minus,
     Mult,
     Div,
+    Jump: Word,
+    Halt,
 };

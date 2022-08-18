@@ -11,18 +11,18 @@ const program = [_]Instruction{
     .Minus,
     .{ .Push = 2 },
     .Mult,
-    .{ .Push = 0 },
+    .{ .Push = 2 },
     .Div,
+    .Halt,
 };
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
     const stderr = std.io.getStdErr().writer();
-    var bm = Machine{};
-    for (program) |instruction| {
-        try stdout.print("Instruction.{s}\n", .{@tagName(instruction)});
-        bm.executeInstruction(instruction) catch |e| {
-            std.debug.print("ERROR: {s} at {s}\n", .{ @errorName(e), @tagName(instruction) });
+    var bm = Machine.init(&program);
+    while (!bm.halt) {
+        bm.executeInstruction() catch |e| {
+            std.debug.print("ERROR: {s}\n", .{ @errorName(e) });
             try bm.dump(@TypeOf(stderr), stderr);
             std.process.exit(1);
         };

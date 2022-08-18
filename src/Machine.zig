@@ -8,10 +8,20 @@ const stackCapacity = defs.stackCapacity;
 
 stack: [stackCapacity]Word = undefined,
 stackSize: usize = 0,
+program: []const Instruction,
+ip: usize = 0,
+halt: bool = false,
 
 const Self = @This();
 
-pub fn executeInstruction(self: *Self, instruction: Instruction) !void {
+pub fn init(program: []const Instruction) Self {
+    return Self{
+        .program = program,
+    };
+}
+
+pub fn executeInstruction(self: *Self) !void {
+    const instruction = self.program[self.ip];
     switch (instruction) {
         .Push => |operand| {
             if (self.stackSize == stackCapacity) {
@@ -19,6 +29,7 @@ pub fn executeInstruction(self: *Self, instruction: Instruction) !void {
             }
             self.stack[self.stackSize] = operand;
             self.stackSize += 1;
+            self.ip += 1;
         },
         .Plus => {
             if (self.stackSize < 2) {
@@ -26,6 +37,7 @@ pub fn executeInstruction(self: *Self, instruction: Instruction) !void {
             }
             self.stack[self.stackSize - 2] = self.stack[self.stackSize - 2] + self.stack[self.stackSize - 1];
             self.stackSize -= 1;
+            self.ip += 1;
         },
         .Minus => {
             if (self.stackSize < 2) {
@@ -33,6 +45,7 @@ pub fn executeInstruction(self: *Self, instruction: Instruction) !void {
             }
             self.stack[self.stackSize - 2] = self.stack[self.stackSize - 2] - self.stack[self.stackSize - 1];
             self.stackSize -= 1;
+            self.ip += 1;
         },
         .Mult => {
             if (self.stackSize < 2) {
@@ -40,6 +53,7 @@ pub fn executeInstruction(self: *Self, instruction: Instruction) !void {
             }
             self.stack[self.stackSize - 2] = self.stack[self.stackSize - 2] * self.stack[self.stackSize - 1];
             self.stackSize -= 1;
+            self.ip += 1;
         },
         .Div => {
             if (self.stackSize < 2) {
@@ -50,6 +64,13 @@ pub fn executeInstruction(self: *Self, instruction: Instruction) !void {
             }
             self.stack[self.stackSize - 2] = @divExact(self.stack[self.stackSize - 2], self.stack[self.stackSize - 1]);
             self.stackSize -= 1;
+            self.ip += 1;
+        },
+        .Jump => |dest| {
+            self.ip = @intCast(usize, dest);
+        },
+        .Halt => {
+            self.halt = true;
         },
     }
 }
