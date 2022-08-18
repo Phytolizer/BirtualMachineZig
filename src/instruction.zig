@@ -6,4 +6,6 @@ pub const Instruction = union(enum) {
     Push: Word,
     Plus,
     Minus,
+    Mult,
+    Div,
 };

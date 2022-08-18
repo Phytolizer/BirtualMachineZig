@@ -24,14 +24,31 @@ pub fn executeInstruction(self: *Self, instruction: Instruction) !void {
             if (self.stackSize < 2) {
                 return error.StackUnderflow;
             }
-            self.stack[self.stackSize - 2] += self.stack[self.stackSize - 1];
+            self.stack[self.stackSize - 2] = self.stack[self.stackSize - 2] + self.stack[self.stackSize - 1];
             self.stackSize -= 1;
         },
         .Minus => {
             if (self.stackSize < 2) {
                 return error.StackUnderflow;
             }
-            self.stack[self.stackSize - 2] -= self.stack[self.stackSize - 1];
+            self.stack[self.stackSize - 2] = self.stack[self.stackSize - 2] - self.stack[self.stackSize - 1];
+            self.stackSize -= 1;
+        },
+        .Mult => {
+            if (self.stackSize < 2) {
+                return error.StackUnderflow;
+            }
+            self.stack[self.stackSize - 2] = self.stack[self.stackSize - 2] * self.stack[self.stackSize - 1];
+            self.stackSize -= 1;
+        },
+        .Div => {
+            if (self.stackSize < 2) {
+                return error.StackUnderflow;
+            }
+            if (self.stack[self.stackSize - 1] == 0) {
+                return error.DivisionByZero;
+            }
+            self.stack[self.stackSize - 2] = @divExact(self.stack[self.stackSize - 2], self.stack[self.stackSize - 1]);
             self.stackSize -= 1;
         },
     }
