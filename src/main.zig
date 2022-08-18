@@ -15,7 +15,7 @@ pub fn main() !void {
     var bm = Machine{};
     for (program) |instruction| {
         bm.executeInstruction(instruction) catch |e| {
-            std.debug.print("ERROR: {s}\n", .{@errorName(e)});
+            std.debug.print("ERROR: {s} at {s}\n", .{@errorName(e), @tagName(instruction)});
             try bm.dump(@TypeOf(stdout), stdout);
             std.process.exit(1);
         };
