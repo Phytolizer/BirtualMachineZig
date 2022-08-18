@@ -1,6 +1,23 @@
 const std = @import("std");
 
+const Machine = @import("Machine.zig");
+const Instruction = @import("instruction.zig").Instruction;
+
+const program = [_]Instruction{
+    .{ .Push = 69 },
+    .{ .Push = 420 },
+    .Plus,
+    .Plus,
+};
+
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
-    try stdout.writeAll("Hello, World\n");
+    var bm = Machine{};
+    for (program) |instruction| {
+        bm.executeInstruction(instruction) catch |e| {
+            std.debug.print("ERROR: {s}\n", .{@errorName(e)});
+            try bm.dump(@TypeOf(stdout), stdout);
+            std.process.exit(1);
+        };
+    }
 }
