@@ -37,4 +37,19 @@ pub fn build(b: *Builder) void {
 
     const run_basm_step = b.step("run-basm", "Run basm");
     run_basm_step.dependOn(&basm_run_cmd.step);
+
+    const bmi_exe = b.addExecutable("bmi", "src/bmi.zig");
+    bmi_exe.setTarget(target);
+    bmi_exe.setBuildMode(mode);
+    bmi_exe.addPackage(libbm_pkg);
+    bmi_exe.install();
+
+    const bmi_run_cmd = bmi_exe.run();
+    bmi_run_cmd.step.dependOn(b.getInstallStep());
+    if (b.args) |args| {
+        bmi_run_cmd.addArgs(args);
+    }
+
+    const run_bmi_step = b.step("run-bmi", "Run bmi");
+    run_bmi_step.dependOn(&bmi_run_cmd.step);
 }
