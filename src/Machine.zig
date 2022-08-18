@@ -5,19 +5,27 @@ const Instruction = @import("instruction.zig").Instruction;
 const Word = defs.Word;
 
 const stackCapacity = defs.stackCapacity;
+const programCapacity = 1024;
 
 stack: [stackCapacity]Word = undefined,
 stackSize: usize = 0,
-program: []const Instruction,
+program: [programCapacity]Instruction,
+programSize: usize,
 ip: usize = 0,
 halt: bool = false,
 
 const Self = @This();
 
-pub fn init(program: []const Instruction) Self {
-    return Self{
-        .program = program,
+pub fn initFromMemory(program: []const Instruction) !Self {
+    if (program.len > programCapacity) {
+        return error.ProgramTooLong;
+    }
+    var result = Self{
+        .program = undefined,
+        .programSize = program.len,
     };
+    std.mem.copy(Instruction, &result.program, program);
+    return result;
 }
 
 pub fn executeInstruction(self: *Self) !void {
@@ -75,7 +83,7 @@ pub fn executeInstruction(self: *Self) !void {
     }
 }
 
-pub fn dump(self: *const Self, comptime Writer: type, writer: Writer) !void {
+pub fn dumpStack(self: *const Self, comptime Writer: type, writer: Writer) !void {
     comptime if (!@hasDecl(Writer, "print")) {
         @compileError("Writer does not have print method");
     };
