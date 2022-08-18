@@ -11,7 +11,7 @@ stack: [stackCapacity]Word = undefined,
 stackSize: usize = 0,
 program: [programCapacity]Instruction,
 programSize: usize,
-ip: usize = 0,
+ip: Word = 0,
 halt: bool = false,
 
 const Self = @This();
@@ -29,7 +29,10 @@ pub fn initFromMemory(program: []const Instruction) !Self {
 }
 
 pub fn executeInstruction(self: *Self) !void {
-    const instruction = self.program[self.ip];
+    if (self.ip < 0 or self.ip >= self.programSize) {
+        return error.IllegalAccess;
+    }
+    const instruction = self.program[@intCast(usize, self.ip)];
     switch (instruction) {
         .Push => |operand| {
             if (self.stackSize == stackCapacity) {
@@ -75,7 +78,7 @@ pub fn executeInstruction(self: *Self) !void {
             self.ip += 1;
         },
         .Jump => |dest| {
-            self.ip = @intCast(usize, dest);
+            self.ip = dest;
         },
         .Halt => {
             self.halt = true;
