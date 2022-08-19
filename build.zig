@@ -53,6 +53,21 @@ pub fn build(b: *Builder) !void {
     const run_bme_step = b.step("run-bme", "Run bme");
     run_bme_step.dependOn(&bme_run_cmd.step);
 
+    const debasm_exe = b.addExecutable("debasm", "src/debasm.zig");
+    debasm_exe.setTarget(target);
+    debasm_exe.setBuildMode(mode);
+    debasm_exe.addPackage(libbm_pkg);
+    debasm_exe.install();
+
+    const debasm_run_cmd = debasm_exe.run();
+    debasm_run_cmd.step.dependOn(b.getInstallStep());
+    if (b.args) |args| {
+        debasm_run_cmd.addArgs(args);
+    }
+
+    const run_debasm_step = b.step("run-debasm", "Run debasm");
+    run_debasm_step.dependOn(&debasm_run_cmd.step);
+
     const examples = [_][]const u8{
         "fib",
     };
