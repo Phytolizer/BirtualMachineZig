@@ -3,7 +3,7 @@ const std = @import("std");
 const Builder = std.build.Builder;
 const Pkg = std.build.Pkg;
 
-pub fn build(b: *Builder) void {
+pub fn build(b: *Builder) !void {
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
     // means any target is allowed, and the default is native. Other options
@@ -52,4 +52,38 @@ pub fn build(b: *Builder) void {
 
     const run_bmi_step = b.step("run-bmi", "Run bmi");
     run_bmi_step.dependOn(&bmi_run_cmd.step);
+
+    const examples = [_][]const u8{
+        "fib",
+    };
+
+    var gpAllocator = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpAllocator.backing_allocator;
+
+    var example_cmds = std.ArrayList(*std.build.Step).init(allocator);
+    defer example_cmds.deinit();
+
+    for (examples) |example| {
+        const basm_example = basm_exe.run();
+        const basm_arg = try std.mem.concat(allocator, u8, &.{ "examples/", example, ".basm" });
+        defer allocator.free(basm_arg);
+        const bm_arg = try std.mem.concat(allocator, u8, &.{ "examples/", example, ".bm" });
+        defer allocator.free(bm_arg);
+        basm_example.addArgs(&.{ basm_arg, bm_arg });
+        const bmi_example = bmi_exe.run();
+        bmi_example.addArg(bm_arg);
+        const example_step_name = try std.mem.concat(allocator, u8, &.{"run-", example, "-example"});
+        defer allocator.free(example_step_name);
+        const example_step_desc = try std.mem.concat(allocator, u8, &.{"Run the '", example, "' example"});
+        defer allocator.free(example_step_desc);
+        const example_step = b.step(example_step_name, example_step_desc);
+        example_step.dependOn(&basm_example.step);
+        example_step.dependOn(&bmi_example.step);
+        try example_cmds.append(example_step);
+    }
+
+    const run_examples_step = b.step("run-examples", "Run all examples");
+    for (example_cmds.items) |cmd| {
+        run_examples_step.dependOn(cmd);
+    }
 }
