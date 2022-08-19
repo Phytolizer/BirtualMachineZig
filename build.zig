@@ -60,7 +60,7 @@ pub fn build(b: *Builder) !void {
     var gpAllocator = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpAllocator.backing_allocator;
 
-    var example_cmds = std.ArrayList(*std.build.Step).init(allocator);
+    var example_cmds = std.ArrayList(*std.build.RunStep).init(allocator);
     defer example_cmds.deinit();
 
     for (examples) |example| {
@@ -72,18 +72,12 @@ pub fn build(b: *Builder) !void {
         basm_example.addArgs(&.{ basm_arg, bm_arg });
         const bmi_example = bmi_exe.run();
         bmi_example.addArg(bm_arg);
-        const example_step_name = try std.mem.concat(allocator, u8, &.{"run-", example, "-example"});
-        defer allocator.free(example_step_name);
-        const example_step_desc = try std.mem.concat(allocator, u8, &.{"Run the '", example, "' example"});
-        defer allocator.free(example_step_desc);
-        const example_step = b.step(example_step_name, example_step_desc);
-        example_step.dependOn(&basm_example.step);
-        example_step.dependOn(&bmi_example.step);
-        try example_cmds.append(example_step);
+        bmi_example.step.dependOn(&basm_example.step);
+        try example_cmds.append(bmi_example);
     }
 
     const run_examples_step = b.step("run-examples", "Run all examples");
     for (example_cmds.items) |cmd| {
-        run_examples_step.dependOn(cmd);
+        run_examples_step.dependOn(&cmd.step);
     }
 }
