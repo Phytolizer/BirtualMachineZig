@@ -57,19 +57,16 @@ pub fn build(b: *Builder) !void {
         "fib",
     };
 
-    var gpAllocator = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpAllocator.backing_allocator;
-
     var example_cmds: [examples.len]*std.build.RunStep = undefined;
 
     var i: usize = 0;
     while (i < examples.len) : (i += 1) {
         const example = examples[i];
         const basm_example = basm_exe.run();
-        const basm_arg = try std.mem.concat(allocator, u8, &.{ "examples/", example, ".basm" });
-        defer allocator.free(basm_arg);
-        const bm_arg = try std.mem.concat(allocator, u8, &.{ "examples/", example, ".bm" });
-        defer allocator.free(bm_arg);
+        const basm_arg = try std.mem.concat(b.allocator, u8, &.{ "examples/", example, ".basm" });
+        defer b.allocator.free(basm_arg);
+        const bm_arg = try std.mem.concat(b.allocator, u8, &.{ "examples/", example, ".bm" });
+        defer b.allocator.free(bm_arg);
         basm_example.addArgs(&.{ basm_arg, bm_arg });
         const bmi_example = bmi_exe.run();
         bmi_example.addArg(bm_arg);
