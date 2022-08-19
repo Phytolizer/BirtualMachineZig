@@ -32,6 +32,9 @@ fn translateLine(lineIn: []const u8) !Instruction {
     if (std.mem.eql(u8, instName, "plus")) {
         return Instruction.Plus;
     }
+    if (std.mem.eql(u8, instName, "halt")) {
+        return Instruction.Halt;
+    }
     std.debug.print("ERROR: `{s}` is not a recognized instruction\n", .{instName});
     return error.BadInstruction;
 }

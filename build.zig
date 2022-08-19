@@ -69,6 +69,7 @@ pub fn build(b: *Builder) !void {
     run_debasm_step.dependOn(&debasm_run_cmd.step);
 
     const examples = [_][]const u8{
+        "123",
         "fib",
     };
 
