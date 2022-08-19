@@ -1,5 +1,6 @@
 const std = @import("std");
 const libbm = @import("bm");
+const args = @import("args");
 const defs = libbm.defs;
 const string = libbm.string;
 const file = libbm.file;
@@ -53,20 +54,25 @@ fn translateSource(source: []const u8, program: []Instruction) !usize {
     return programSize;
 }
 
+fn usage(executableName: []const u8) void {
+    std.debug.print("Usage: {s} <input.basm> <output.bm>\n", .{executableName});
+}
+
 pub fn main() !void {
     var gpAllocator = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpAllocator.detectLeaks();
     const allocator = gpAllocator.backing_allocator;
-    var args = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, args);
-    if (args.len < 3) {
-        std.debug.print("Usage: {s} <input.basm> <output.bm>\n", .{args[0]});
-        std.debug.print("ERROR: expected input and output\n", .{});
+    const parsed = args.parseForCurrentProcess(struct {}, allocator, .silent) catch {
+        usage("basm");
+        return error.InvalidUsage;
+    };
+    if (parsed.positionals.len < 2) {
+        usage(parsed.executable_name.?);
         return error.InvalidUsage;
     }
 
-    const inputFilePath = args[1];
-    const outputFilePath = args[2];
+    const inputFilePath = parsed.positionals[0];
+    const outputFilePath = parsed.positionals[1];
 
     var bm = Machine{};
     var sourceCode = try file.slurp(inputFilePath, allocator);

@@ -1,4 +1,5 @@
 const std = @import("std");
+const pkgs = @import("deps.zig").pkgs;
 
 const Builder = std.build.Builder;
 const Pkg = std.build.Pkg;
@@ -27,6 +28,7 @@ pub fn build(b: *Builder) !void {
     basm_exe.setTarget(target);
     basm_exe.setBuildMode(mode);
     basm_exe.addPackage(libbm_pkg);
+    basm_exe.addPackage(pkgs.args);
     basm_exe.install();
 
     const basm_run_cmd = basm_exe.run();
@@ -42,6 +44,7 @@ pub fn build(b: *Builder) !void {
     bme_exe.setTarget(target);
     bme_exe.setBuildMode(mode);
     bme_exe.addPackage(libbm_pkg);
+    bme_exe.addPackage(pkgs.args);
     bme_exe.install();
 
     const bme_run_cmd = bme_exe.run();
@@ -85,7 +88,7 @@ pub fn build(b: *Builder) !void {
         defer b.allocator.free(bm_arg);
         basm_example.addArgs(&.{ basm_arg, bm_arg });
         const bme_example = bme_exe.run();
-        bme_example.addArg(bm_arg);
+        bme_example.addArgs(&.{ "-i", bm_arg });
         bme_example.step.dependOn(&basm_example.step);
         example_cmds[i] = bme_example;
     }

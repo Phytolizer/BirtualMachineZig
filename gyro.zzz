@@ -1,0 +1,15 @@
+pkgs:
+  BirtualMachineZig:
+    version: 0.0.0
+    license: MIT
+    source_url: "https://github.com/Phytolizer/BirtualMachineZig"
+    root: src/main.zig
+    files:
+      README.md
+      LICENSE
+deps:
+  args:
+    git:
+      url: "https://github.com/MasterQ32/zig-args.git"
+      ref: e053c11cebada010707dddde4194ad8e844e95ca
+      root: args.zig
