@@ -174,3 +174,10 @@ pub fn saveProgramToFile(self: *const Self, filePath: []const u8) !void {
 
     try file.writeAll(@ptrCast([*]const u8, &self.program[0])[0..(self.programSize * @sizeOf(Instruction))]);
 }
+
+pub fn executeProgram(self: *Self, limit: usize) !void {
+    var i: usize = 0;
+    while (i < limit and !self.halt) : (i += 1) {
+        try self.executeInstruction();
+    }
+}
