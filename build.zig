@@ -60,8 +60,7 @@ pub fn build(b: *Builder) !void {
     var gpAllocator = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpAllocator.backing_allocator;
 
-    var example_cmds = try allocator.alloc(*std.build.RunStep, examples.len);
-    defer allocator.free(example_cmds);
+    var example_cmds: [examples.len]*std.build.RunStep = undefined;
 
     var i: usize = 0;
     while (i < examples.len) : (i += 1) {
