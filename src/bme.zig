@@ -21,4 +21,6 @@ pub fn main() !void {
 
     var bm = try Machine.initFromFile(inputFilePath);
     try bm.executeProgram(69);
+    const stdout = std.io.getStdOut().writer();
+    try bm.dumpStack(@TypeOf(stdout), stdout);
 }
