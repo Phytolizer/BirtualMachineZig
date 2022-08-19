@@ -14,20 +14,21 @@ const executionLimit = defs.executionLimit;
 fn translateLine(lineIn: []const u8) !Instruction {
     var line = lineIn;
     const instName = string.chopByDelim(&line, ' ');
+    const operandStr = string.trim(string.chopByDelim(&line, '#'));
 
     if (std.mem.eql(u8, instName, "push")) {
         line = string.trimLeft(line);
-        const operand = try std.fmt.parseInt(Word, string.trimRight(line), 10);
+        const operand = try std.fmt.parseInt(Word, operandStr, 10);
         return Instruction{ .Push = operand };
     }
     if (std.mem.eql(u8, instName, "dup")) {
         line = string.trimLeft(line);
-        const operand = try std.fmt.parseInt(Word, string.trimRight(line), 10);
+        const operand = try std.fmt.parseInt(Word, operandStr, 10);
         return Instruction{ .Dup = operand };
     }
     if (std.mem.eql(u8, instName, "jmp")) {
         line = string.trimLeft(line);
-        const operand = try std.fmt.parseInt(Word, string.trimRight(line), 10);
+        const operand = try std.fmt.parseInt(Word, operandStr, 10);
         return Instruction{ .Jump = operand };
     }
     if (std.mem.eql(u8, instName, "plus")) {
@@ -46,7 +47,7 @@ fn translateSource(source: []const u8, program: []Instruction) !usize {
     var programSize: usize = 0;
     while (sourcePtr.len > 0) {
         const line = string.trim(string.chopByDelim(&sourcePtr, '\n'));
-        if (line.len > 0) {
+        if (line.len > 0 and line[0] != '#') {
             program[programSize] = try translateLine(line);
             programSize += 1;
         }
