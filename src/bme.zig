@@ -20,7 +20,11 @@ pub fn main() !void {
     const inputFilePath = args[1];
 
     var bm = try Machine.initFromFile(inputFilePath);
-    try bm.executeProgram(69);
+    bm.executeProgram(69) catch |e| {
+        const stderr = std.io.getStdErr().writer();
+        try bm.dumpStack(@TypeOf(stderr), stderr);
+        return e;
+    };
     const stdout = std.io.getStdOut().writer();
     try bm.dumpStack(@TypeOf(stdout), stdout);
 }
