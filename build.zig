@@ -38,20 +38,20 @@ pub fn build(b: *Builder) !void {
     const run_basm_step = b.step("run-basm", "Run basm");
     run_basm_step.dependOn(&basm_run_cmd.step);
 
-    const bmi_exe = b.addExecutable("bmi", "src/bmi.zig");
-    bmi_exe.setTarget(target);
-    bmi_exe.setBuildMode(mode);
-    bmi_exe.addPackage(libbm_pkg);
-    bmi_exe.install();
+    const bme_exe = b.addExecutable("bme", "src/bme.zig");
+    bme_exe.setTarget(target);
+    bme_exe.setBuildMode(mode);
+    bme_exe.addPackage(libbm_pkg);
+    bme_exe.install();
 
-    const bmi_run_cmd = bmi_exe.run();
-    bmi_run_cmd.step.dependOn(b.getInstallStep());
+    const bme_run_cmd = bme_exe.run();
+    bme_run_cmd.step.dependOn(b.getInstallStep());
     if (b.args) |args| {
-        bmi_run_cmd.addArgs(args);
+        bme_run_cmd.addArgs(args);
     }
 
-    const run_bmi_step = b.step("run-bmi", "Run bmi");
-    run_bmi_step.dependOn(&bmi_run_cmd.step);
+    const run_bme_step = b.step("run-bme", "Run bme");
+    run_bme_step.dependOn(&bme_run_cmd.step);
 
     const examples = [_][]const u8{
         "fib",
@@ -68,10 +68,10 @@ pub fn build(b: *Builder) !void {
         const bm_arg = try std.mem.concat(b.allocator, u8, &.{ "examples/", example, ".bm" });
         defer b.allocator.free(bm_arg);
         basm_example.addArgs(&.{ basm_arg, bm_arg });
-        const bmi_example = bmi_exe.run();
-        bmi_example.addArg(bm_arg);
-        bmi_example.step.dependOn(&basm_example.step);
-        example_cmds[i] = bmi_example;
+        const bme_example = bme_exe.run();
+        bme_example.addArg(bm_arg);
+        bme_example.step.dependOn(&basm_example.step);
+        example_cmds[i] = bme_example;
     }
 
     const run_examples_step = b.step("run-examples", "Run all examples");
