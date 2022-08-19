@@ -55,6 +55,7 @@ fn translateSource(source: []const u8, program: []Instruction) !usize {
 
 pub fn main() !void {
     var gpAllocator = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpAllocator.detectLeaks();
     const allocator = gpAllocator.backing_allocator;
     var args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
@@ -72,7 +73,4 @@ pub fn main() !void {
     defer allocator.free(sourceCode);
     bm.programSize = try translateSource(sourceCode, &bm.program);
     try bm.saveProgramToFile(outputFilePath);
-    if (gpAllocator.detectLeaks()) {
-        return error.LeakedMemory;
-    }
 }

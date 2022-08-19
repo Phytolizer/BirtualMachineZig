@@ -5,6 +5,7 @@ const Machine = libbm.Machine;
 
 pub fn main() !void {
     var gpAllocator = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpAllocator.detectLeaks();
     const allocator = gpAllocator.backing_allocator;
 
     const args = try std.process.argsAlloc(allocator);
@@ -20,8 +21,4 @@ pub fn main() !void {
 
     var bm = try Machine.initFromFile(inputFilePath);
     try bm.executeProgram(69);
-
-    if (gpAllocator.detectLeaks()) {
-        return error.LeakedMemory;
-    }
 }
