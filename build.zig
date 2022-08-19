@@ -94,4 +94,8 @@ pub fn build(b: *Builder) !void {
     for (example_cmds) |cmd| {
         run_examples_step.dependOn(&cmd.step);
     }
+
+    const fmt_cmd = b.addFmt(&.{ "src/basm.zig", "src/bme.zig", "src/debasm.zig", "src/libbm.zig" });
+    const fmt_step = b.step("fmt", "Format code");
+    fmt_step.dependOn(&fmt_cmd.step);
 }
