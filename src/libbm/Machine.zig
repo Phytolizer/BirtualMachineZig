@@ -11,7 +11,7 @@ stack: [stackCapacity]Word = undefined,
 stackSize: usize = 0,
 program: [programCapacity]Instruction = undefined,
 programSize: usize = 0,
-ip: Word = 0,
+ip: usize = 0,
 halt: bool = false,
 
 const Self = @This();
