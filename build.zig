@@ -88,7 +88,7 @@ pub fn build(b: *Builder) !void {
         defer b.allocator.free(bm_arg);
         basm_example.addArgs(&.{ basm_arg, bm_arg });
         const bme_example = bme_exe.run();
-        bme_example.addArgs(&.{ "-i", bm_arg });
+        bme_example.addArgs(&.{ "-i", bm_arg, "-l", "69" });
         bme_example.step.dependOn(&basm_example.step);
         example_cmds[i] = bme_example;
     }

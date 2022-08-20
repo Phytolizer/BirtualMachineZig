@@ -181,3 +181,11 @@ pub fn executeProgram(self: *Self, limit: ?usize) !void {
         try self.executeInstruction();
     }
 }
+
+pub fn pushInstruction(self: *Self, inst: Instruction) !void {
+    if (self.programSize == programCapacity) {
+        return error.ProgramTooLong;
+    }
+    self.program[self.programSize] = inst;
+    self.programSize += 1;
+}

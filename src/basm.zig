@@ -5,54 +5,110 @@ const defs = libbm.defs;
 const string = libbm.string;
 const file = libbm.file;
 
+const Allocator = std.mem.Allocator;
 const Machine = libbm.Machine;
 const Instruction = libbm.instruction.Instruction;
 const Word = defs.Word;
 
-const executionLimit = defs.executionLimit;
+const UnresolvedJump = struct {
+    address: usize,
+    label: []const u8,
+};
 
-fn translateLine(lineIn: []const u8) !Instruction {
-    var line = lineIn;
-    const instName = string.chopByDelim(&line, ' ');
-    const operandStr = string.trim(string.chopByDelim(&line, '#'));
+const Label = struct {
+    name: []const u8,
+    address: usize,
+};
 
-    if (std.mem.eql(u8, instName, "push")) {
-        line = string.trimLeft(line);
-        const operand = try std.fmt.parseInt(Word, operandStr, 10);
-        return Instruction{ .Push = operand };
+const LabelTable = struct {
+    labels: std.ArrayList(Label),
+    unresolvedJumps: std.ArrayList(UnresolvedJump),
+
+    const Self = @This();
+
+    pub fn init(allocator: Allocator) Self {
+        return Self{
+            .labels = std.ArrayList(Label).init(allocator),
+            .unresolvedJumps = std.ArrayList(UnresolvedJump).init(allocator),
+        };
     }
-    if (std.mem.eql(u8, instName, "dup")) {
-        line = string.trimLeft(line);
-        const operand = try std.fmt.parseInt(Word, operandStr, 10);
-        return Instruction{ .Dup = operand };
+
+    pub fn deinit(self: *Self) void {
+        self.labels.deinit();
+        self.unresolvedJumps.deinit();
     }
-    if (std.mem.eql(u8, instName, "jmp")) {
-        line = string.trimLeft(line);
-        const operand = try std.fmt.parseInt(Word, operandStr, 10);
-        return Instruction{ .Jump = operand };
+
+    pub fn findLabel(self: *const Self, name: []const u8) ?Label {
+        for (self.labels.items) |label| {
+            if (std.mem.eql(u8, label.name, name)) {
+                return label;
+            }
+        }
+
+        return null;
     }
-    if (std.mem.eql(u8, instName, "plus")) {
-        return Instruction.Plus;
-    }
-    if (std.mem.eql(u8, instName, "halt")) {
-        return Instruction.Halt;
-    }
-    std.debug.print("ERROR: `{s}` is not a recognized instruction\n", .{instName});
-    return error.BadInstruction;
+};
+
+fn contains(comptime T: type, slice: []const T, value: T) bool {
+    return std.mem.indexOfScalar(T, slice, value) != null;
 }
 
-fn translateSource(source: []const u8, program: []Instruction) !usize {
-    _ = program;
+fn translateSource(source: []const u8, bm: *Machine, lt: *LabelTable) !void {
     var sourcePtr = source;
-    var programSize: usize = 0;
+    bm.programSize = 0;
     while (sourcePtr.len > 0) {
-        const line = string.trim(string.chopByDelim(&sourcePtr, '\n'));
+        if (bm.programSize == bm.program.len) {
+            return error.ProgramTooLarge;
+        }
+        var line = string.trim(string.chopByDelim(&sourcePtr, '\n'));
         if (line.len > 0 and line[0] != '#') {
-            program[programSize] = try translateLine(line);
-            programSize += 1;
+            const instName = string.chopByDelim(&line, ' ');
+            const operandStr = string.trim(string.chopByDelim(&line, '#'));
+
+            if (instName.len > 0 and instName[instName.len - 1] == ':') {
+                try lt.labels.append(.{
+                    .name = instName[0 .. instName.len - 1],
+                    .address = bm.programSize,
+                });
+            } else if (std.mem.eql(u8, instName, "push")) {
+                line = string.trimLeft(line);
+                const operand = try std.fmt.parseInt(Word, operandStr, 10);
+                try bm.pushInstruction(.{ .Push = operand });
+            } else if (std.mem.eql(u8, instName, "dup")) {
+                line = string.trimLeft(line);
+                const operand = try std.fmt.parseInt(Word, operandStr, 10);
+                try bm.pushInstruction(.{ .Dup = operand });
+            } else if (std.mem.eql(u8, instName, "jmp")) {
+                line = string.trimLeft(line);
+                try lt.unresolvedJumps.append(.{
+                    .label = operandStr,
+                    .address = bm.programSize,
+                });
+                try bm.pushInstruction(.{ .Jump = 0 });
+            } else if (std.mem.eql(u8, instName, "plus")) {
+                try bm.pushInstruction(.Plus);
+            } else if (std.mem.eql(u8, instName, "halt")) {
+                try bm.pushInstruction(.Halt);
+            } else {
+                std.debug.print("ERROR: `{s}` is not a recognized instruction\n", .{instName});
+                return error.BadInstruction;
+            }
         }
     }
-    return programSize;
+
+    for (lt.unresolvedJumps.items) |jump| {
+        switch (bm.program[jump.address]) {
+            .Jump => |*target| {
+                const label = lt.findLabel(jump.label) orelse {
+                    return error.InvalidJump;
+                };
+                target.* = @intCast(Word, label.address);
+            },
+            else => {
+                return error.NotAJump;
+            },
+        }
+    }
 }
 
 fn usage(executableName: []const u8) void {
@@ -76,8 +132,10 @@ pub fn main() !void {
     const outputFilePath = parsed.positionals[1];
 
     var bm = Machine{};
+    var lt = LabelTable.init(allocator);
+    defer lt.deinit();
     var sourceCode = try file.slurp(inputFilePath, allocator);
     defer allocator.free(sourceCode);
-    bm.programSize = try translateSource(sourceCode, &bm.program);
+    try translateSource(sourceCode, &bm, &lt);
     try bm.saveProgramToFile(outputFilePath);
 }
