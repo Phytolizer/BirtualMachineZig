@@ -95,6 +95,8 @@ fn translateSource(source: []const u8, bm: *Machine, lt: *LabelTable) !void {
                 try bm.pushInstruction(.Plus);
             } else if (std.mem.eql(u8, instName, "halt")) {
                 try bm.pushInstruction(.Halt);
+            } else if (std.mem.eql(u8, instName, "nop")) {
+                try bm.pushInstruction(.Nop);
             } else {
                 std.debug.print("ERROR: `{s}` is not a recognized instruction\n", .{instName});
                 return error.BadInstruction;
