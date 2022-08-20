@@ -68,9 +68,6 @@ pub fn executeInstruction(self: *Self) !void {
             self.ip += 1;
         },
         .Dup => |distance| {
-            if (distance < 0) {
-                return error.IllegalOperand;
-            }
             if (self.stackSize - @intCast(usize, distance) < 0) {
                 return error.StackUnderflow;
             }
