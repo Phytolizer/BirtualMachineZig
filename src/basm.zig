@@ -45,6 +45,7 @@ const LabelTable = struct {
             }
         }
 
+        std.debug.print("The label `{s}` does not exist\n", .{name});
         return error.BadJump;
     }
 };
