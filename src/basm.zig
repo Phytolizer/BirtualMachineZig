@@ -38,14 +38,14 @@ const LabelTable = struct {
         self.unresolvedJumps.deinit();
     }
 
-    pub fn findLabel(self: *const Self, name: []const u8) ?Label {
+    pub fn find(self: *const Self, name: []const u8) !usize {
         for (self.labels.items) |label| {
             if (std.mem.eql(u8, label.name, name)) {
-                return label;
+                return label.address;
             }
         }
 
-        return null;
+        return error.BadJump;
     }
 };
 
@@ -99,10 +99,8 @@ fn translateSource(source: []const u8, bm: *Machine, lt: *LabelTable) !void {
     for (lt.unresolvedJumps.items) |jump| {
         switch (bm.program[jump.address]) {
             .Jump => |*target| {
-                const label = lt.findLabel(jump.label) orelse {
-                    return error.InvalidJump;
-                };
-                target.* = @intCast(Word, label.address);
+                const label = try lt.find(jump.label);
+                target.* = @intCast(Word, label);
             },
             else => {
                 return error.NotAJump;
