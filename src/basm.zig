@@ -10,7 +10,7 @@ const Machine = libbm.Machine;
 const Instruction = libbm.instruction.Instruction;
 const Word = defs.Word;
 
-const UnresolvedJump = struct {
+const DeferredOperand = struct {
     address: usize,
     label: []const u8,
 };
@@ -20,22 +20,22 @@ const Label = struct {
     address: usize,
 };
 
-const LabelTable = struct {
+const AssemblerContext = struct {
     labels: std.ArrayList(Label),
-    unresolvedJumps: std.ArrayList(UnresolvedJump),
+    deferredOperands: std.ArrayList(DeferredOperand),
 
     const Self = @This();
 
     pub fn init(allocator: Allocator) Self {
         return Self{
             .labels = std.ArrayList(Label).init(allocator),
-            .unresolvedJumps = std.ArrayList(UnresolvedJump).init(allocator),
+            .deferredOperands = std.ArrayList(DeferredOperand).init(allocator),
         };
     }
 
     pub fn deinit(self: *Self) void {
         self.labels.deinit();
-        self.unresolvedJumps.deinit();
+        self.deferredOperands.deinit();
     }
 
     pub fn find(self: *const Self, name: []const u8) !usize {
@@ -54,7 +54,7 @@ fn contains(comptime T: type, slice: []const T, value: T) bool {
     return std.mem.indexOfScalar(T, slice, value) != null;
 }
 
-fn translateSource(source: []const u8, bm: *Machine, lt: *LabelTable) !void {
+fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !void {
     var sourcePtr = source;
     bm.programSize = 0;
     while (sourcePtr.len > 0) {
@@ -66,7 +66,7 @@ fn translateSource(source: []const u8, bm: *Machine, lt: *LabelTable) !void {
             var instName = string.chopByDelim(&line, ' ');
 
             if (instName.len > 0 and instName[instName.len - 1] == ':') {
-                try lt.labels.append(.{
+                try ctx.labels.append(.{
                     .name = instName[0 .. instName.len - 1],
                     .address = bm.programSize,
                 });
@@ -92,7 +92,7 @@ fn translateSource(source: []const u8, bm: *Machine, lt: *LabelTable) !void {
                 if (operand) |op| {
                     try bm.pushInstruction(.{ .Jump = op });
                 } else {
-                    try lt.unresolvedJumps.append(.{
+                    try ctx.deferredOperands.append(.{
                         .label = operandStr,
                         .address = bm.programSize,
                     });
@@ -111,10 +111,10 @@ fn translateSource(source: []const u8, bm: *Machine, lt: *LabelTable) !void {
         }
     }
 
-    for (lt.unresolvedJumps.items) |jump| {
+    for (ctx.deferredOperands.items) |jump| {
         switch (bm.program[jump.address]) {
             .Jump => |*target| {
-                const label = try lt.find(jump.label);
+                const label = try ctx.find(jump.label);
                 target.* = @intCast(Word, label);
             },
             else => {
@@ -145,10 +145,10 @@ pub fn main() !void {
     const outputFilePath = parsed.positionals[1];
 
     var bm = Machine{};
-    var lt = LabelTable.init(allocator);
-    defer lt.deinit();
+    var ctx = AssemblerContext.init(allocator);
+    defer ctx.deinit();
     var sourceCode = try file.slurp(inputFilePath, allocator);
     defer allocator.free(sourceCode);
-    try translateSource(sourceCode, &bm, &lt);
+    try translateSource(sourceCode, &bm, &ctx);
     try bm.saveProgramToFile(outputFilePath);
 }
