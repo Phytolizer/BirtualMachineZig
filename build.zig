@@ -71,20 +71,6 @@ pub fn build(b: *Builder) !void {
     const run_debasm_step = b.step("run-debasm", "Run debasm");
     run_debasm_step.dependOn(&debasm_run_cmd.step);
 
-    const nan_exe = b.addExecutable("nan", "src/nan.zig");
-    nan_exe.setTarget(target);
-    nan_exe.setBuildMode(mode);
-    nan_exe.install();
-
-    const nan_run_cmd = nan_exe.run();
-    nan_run_cmd.step.dependOn(b.getInstallStep());
-    if (b.args) |args| {
-        nan_run_cmd.addArgs(args);
-    }
-
-    const run_nan_step = b.step("run-nan", "Run nan");
-    run_nan_step.dependOn(&nan_run_cmd.step);
-
     const examples = [_][]const u8{
         "123",
         "fib",
