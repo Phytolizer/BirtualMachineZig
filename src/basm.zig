@@ -81,11 +81,16 @@ fn translateSource(source: []const u8, bm: *Machine, lt: *LabelTable) !void {
                 try bm.pushInstruction(.{ .Dup = operand });
             } else if (std.mem.eql(u8, instName, "jmp")) {
                 line = string.trimLeft(line);
-                try lt.unresolvedJumps.append(.{
-                    .label = operandStr,
-                    .address = bm.programSize,
-                });
-                try bm.pushInstruction(.{ .Jump = 0 });
+                const operand = std.fmt.parseInt(Word, operandStr, 10) catch null;
+                if (operand) |op| {
+                    try bm.pushInstruction(.{ .Jump = op });
+                } else {
+                    try lt.unresolvedJumps.append(.{
+                        .label = operandStr,
+                        .address = bm.programSize,
+                    });
+                    try bm.pushInstruction(.{ .Jump = 0 });
+                }
             } else if (std.mem.eql(u8, instName, "plus")) {
                 try bm.pushInstruction(.Plus);
             } else if (std.mem.eql(u8, instName, "halt")) {
