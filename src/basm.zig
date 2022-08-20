@@ -63,15 +63,22 @@ fn translateSource(source: []const u8, bm: *Machine, lt: *LabelTable) !void {
         }
         var line = string.trim(string.chopByDelim(&sourcePtr, '\n'));
         if (line.len > 0 and line[0] != '#') {
-            const instName = string.chopByDelim(&line, ' ');
-            const operandStr = string.trim(string.chopByDelim(&line, '#'));
+            var instName = string.chopByDelim(&line, ' ');
 
             if (instName.len > 0 and instName[instName.len - 1] == ':') {
                 try lt.labels.append(.{
                     .name = instName[0 .. instName.len - 1],
                     .address = bm.programSize,
                 });
-            } else if (std.mem.eql(u8, instName, "push")) {
+
+                instName = string.trim(string.chopByDelim(&line, ' '));
+            }
+
+            if (instName.len == 0) {
+                continue;
+            }
+            const operandStr = string.trim(string.chopByDelim(&line, '#'));
+            if (std.mem.eql(u8, instName, "push")) {
                 line = string.trimLeft(line);
                 const operand = try std.fmt.parseInt(Word, operandStr, 10);
                 try bm.pushInstruction(.{ .Push = operand });
