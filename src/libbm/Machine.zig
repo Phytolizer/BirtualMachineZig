@@ -158,7 +158,7 @@ pub fn dumpStack(self: *const Self, comptime Writer: type, writer: Writer) !void
     try writer.print("Stack:\n", .{});
     if (self.stackSize > 0) {
         for (self.stack[0..self.stackSize]) |elem| {
-            try writer.print("  {d} {d} {e:.6} 0x{x:0>16}\n", .{
+            try writer.print("  u64: {d} i64: {d} f64: {e:.6} ptr: 0x{x:0>16}\n", .{
                 elem,
                 @bitCast(i64, elem),
                 @bitCast(f64, elem),
