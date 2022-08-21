@@ -9,15 +9,16 @@ const Allocator = std.mem.Allocator;
 const Machine = libbm.Machine;
 const Instruction = libbm.instruction.Instruction;
 const Word = defs.Word;
+const InstAddr = defs.InstAddr;
 
 const DeferredOperand = struct {
-    address: usize,
+    address: InstAddr,
     label: []const u8,
 };
 
 const Label = struct {
     name: []const u8,
-    address: usize,
+    address: InstAddr,
 };
 
 const AssemblerContext = struct {
@@ -38,7 +39,7 @@ const AssemblerContext = struct {
         self.deferredOperands.deinit();
     }
 
-    pub fn find(self: *const Self, name: []const u8) !usize {
+    pub fn find(self: *const Self, name: []const u8) !InstAddr {
         for (self.labels.items) |label| {
             if (std.mem.eql(u8, label.name, name)) {
                 return label.address;
@@ -80,17 +81,17 @@ fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !vo
             const operandStr = string.trim(string.chopByDelim(&line, '#'));
             if (std.mem.eql(u8, instName, "push")) {
                 line = string.trimLeft(line);
-                const operand = try std.fmt.parseInt(Word, operandStr, 10);
-                try bm.pushInstruction(.{ .Push = operand });
+                const operand = try std.fmt.parseInt(i64, operandStr, 10);
+                try bm.pushInstruction(.{ .Push = @bitCast(Word, operand) });
             } else if (std.mem.eql(u8, instName, "dup")) {
                 line = string.trimLeft(line);
-                const operand = try std.fmt.parseInt(Word, operandStr, 10);
-                try bm.pushInstruction(.{ .Dup = operand });
+                const operand = try std.fmt.parseInt(i64, operandStr, 10);
+                try bm.pushInstruction(.{ .Dup = @bitCast(Word, operand) });
             } else if (std.mem.eql(u8, instName, "jmp")) {
                 line = string.trimLeft(line);
-                const operand = std.fmt.parseInt(Word, operandStr, 10) catch null;
+                const operand = std.fmt.parseInt(i64, operandStr, 10) catch null;
                 if (operand) |op| {
-                    try bm.pushInstruction(.{ .Jump = op });
+                    try bm.pushInstruction(.{ .Jump = @bitCast(Word, op) });
                 } else {
                     try ctx.deferredOperands.append(.{
                         .label = operandStr,
