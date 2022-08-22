@@ -321,6 +321,10 @@ pub fn pushNative(self: *Self, native: Native) !void {
     self.nativesSize += 1;
 }
 
+fn checkNative(value: anytype) void {
+    std.debug.assert(@TypeOf(value) == Native);
+}
+
 pub fn alloc(self: *Self) NativeError!void {
     if (self.stackSize < 1) {
         return error.StackUnderflow;
@@ -330,7 +334,7 @@ pub fn alloc(self: *Self) NativeError!void {
     self.stack[self.stackSize - 1] = @bitCast(Word, @ptrToInt(mem.ptr));
 }
 comptime {
-    std.debug.assert(@TypeOf(&alloc) == Native);
+    checkNative(&alloc);
 }
 
 pub fn free(self: *Self) NativeError!void {
@@ -340,4 +344,7 @@ pub fn free(self: *Self) NativeError!void {
     const ptr = @intToPtr([]u8, self.stack[self.stackSize - 1]);
     self.stackSize -= 1;
     self.allocator.free(ptr);
+}
+comptime {
+    checkNative(&free);
 }
