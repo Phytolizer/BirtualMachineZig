@@ -89,6 +89,13 @@ pub fn executeInstruction(self: *Self) !void {
             self.stack[b] = t;
             self.ip += 1;
         },
+        .Drop => {
+            if (self.stackSize == 0) {
+                return error.StackUnderflow;
+            }
+            self.stackSize -= 1;
+            self.ip += 1;
+        },
         .PlusI => {
             if (self.stackSize < 2) {
                 return error.StackUnderflow;

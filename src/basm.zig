@@ -118,10 +118,16 @@ fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !vo
                     });
                     try bm.pushInstruction(.{ .JumpIf = 0 });
                 }
+            } else if (std.mem.eql(u8, instName, Instruction.name(.Drop))) {
+                try bm.pushInstruction(.Drop);
             } else if (std.mem.eql(u8, instName, Instruction.name(.PlusI))) {
                 try bm.pushInstruction(.PlusI);
+            } else if (std.mem.eql(u8, instName, Instruction.name(.MinusI))) {
+                try bm.pushInstruction(.MinusI);
             } else if (std.mem.eql(u8, instName, Instruction.name(.PlusF))) {
                 try bm.pushInstruction(.PlusF);
+            } else if (std.mem.eql(u8, instName, Instruction.name(.MinusF))) {
+                try bm.pushInstruction(.MinusF);
             } else if (std.mem.eql(u8, instName, Instruction.name(.MultF))) {
                 try bm.pushInstruction(.MultF);
             } else if (std.mem.eql(u8, instName, Instruction.name(.DivF))) {
