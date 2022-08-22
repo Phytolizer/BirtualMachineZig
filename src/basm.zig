@@ -55,6 +55,16 @@ fn contains(comptime T: type, slice: []const T, value: T) bool {
     return std.mem.indexOfScalar(T, slice, value) != null;
 }
 
+fn pushI64(bm: *Machine, operandStr: []const u8) !void {
+    const operand = try std.fmt.parseInt(i64, operandStr, 10);
+    try bm.pushInstruction(.{ .Push = @bitCast(Word, operand) });
+}
+
+fn pushF64(bm: *Machine, operandStr: []const u8) !void {
+    const operand = try std.fmt.parseFloat(f64, operandStr);
+    try bm.pushInstruction(.{ .Push = @bitCast(Word, operand) });
+}
+
 fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !void {
     var sourcePtr = source;
     bm.programSize = 0;
@@ -81,8 +91,9 @@ fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !vo
             const operandStr = string.trim(string.chopByDelim(&line, '#'));
             if (std.mem.eql(u8, instName, Instruction.name(.Push))) {
                 line = string.trimLeft(line);
-                const operand = try std.fmt.parseInt(i64, operandStr, 10);
-                try bm.pushInstruction(.{ .Push = @bitCast(Word, operand) });
+                pushI64(bm, operandStr) catch {
+                    try pushF64(bm, operandStr);
+                };
             } else if (std.mem.eql(u8, instName, Instruction.name(.Dup))) {
                 line = string.trimLeft(line);
                 const operand = try std.fmt.parseInt(i64, operandStr, 10);
@@ -101,6 +112,8 @@ fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !vo
                 }
             } else if (std.mem.eql(u8, instName, Instruction.name(.PlusI))) {
                 try bm.pushInstruction(.PlusI);
+            } else if (std.mem.eql(u8, instName, Instruction.name(.PlusF))) {
+                try bm.pushInstruction(.PlusF);
             } else if (std.mem.eql(u8, instName, Instruction.name(.Halt))) {
                 try bm.pushInstruction(.Halt);
             } else if (std.mem.eql(u8, instName, Instruction.name(.Nop))) {

@@ -113,6 +113,41 @@ pub fn executeInstruction(self: *Self) !void {
             self.stackSize -= 1;
             self.ip += 1;
         },
+        .PlusF => {
+            if (self.stackSize < 2) {
+                return error.StackUnderflow;
+            }
+            self.stack[self.stackSize - 2] = @bitCast(Word, @bitCast(f64, self.stack[self.stackSize - 2]) + @bitCast(f64, self.stack[self.stackSize - 1]));
+            self.stackSize -= 1;
+            self.ip += 1;
+        },
+        .MinusF => {
+            if (self.stackSize < 2) {
+                return error.StackUnderflow;
+            }
+            self.stack[self.stackSize - 2] = @bitCast(Word, @bitCast(f64, self.stack[self.stackSize - 2]) - @bitCast(f64, self.stack[self.stackSize - 1]));
+            self.stackSize -= 1;
+            self.ip += 1;
+        },
+        .MultF => {
+            if (self.stackSize < 2) {
+                return error.StackUnderflow;
+            }
+            self.stack[self.stackSize - 2] = @bitCast(Word, @bitCast(f64, self.stack[self.stackSize - 2]) * @bitCast(f64, self.stack[self.stackSize - 1]));
+            self.stackSize -= 1;
+            self.ip += 1;
+        },
+        .DivF => {
+            if (self.stackSize < 2) {
+                return error.StackUnderflow;
+            }
+            if (self.stack[self.stackSize - 1] == 0) {
+                return error.DivisionByZero;
+            }
+            self.stack[self.stackSize - 2] = @bitCast(Word, @bitCast(f64, self.stack[self.stackSize - 2]) / @bitCast(f64, self.stack[self.stackSize - 1]));
+            self.stackSize -= 1;
+            self.ip += 1;
+        },
         .Jump => |dest| {
             self.ip = dest;
         },

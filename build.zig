@@ -73,6 +73,7 @@ pub fn build(b: *Builder) !void {
 
     const examples = [_][]const u8{
         "123",
+        "123f",
         "fib",
     };
 
