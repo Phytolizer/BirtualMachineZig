@@ -1,7 +1,14 @@
 # sum(1/n!)
-    push 0.0  # 0
+    push 1.0  # 0
     push 1.0  # n!
 loop:
+    swap
+    push 1.0
+    dup 2
+    divf
+    plusf
+    swap
+
     dup 0
     push 1.0
     plusf
