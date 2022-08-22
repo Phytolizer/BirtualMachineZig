@@ -107,6 +107,17 @@ fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !vo
                     });
                     try bm.pushInstruction(.{ .Jump = 0 });
                 }
+            } else if (std.mem.eql(u8, instName, Instruction.name(.Call))) {
+                line = string.trimLeft(line);
+                if (std.fmt.parseInt(i64, operandStr, 10) catch null) |operand| {
+                    try bm.pushInstruction(.{ .Call = @bitCast(Word, operand) });
+                } else {
+                    try ctx.deferredOperands.append(.{
+                        .label = operandStr,
+                        .address = bm.programSize,
+                    });
+                    try bm.pushInstruction(.{ .Call = 0 });
+                }
             } else if (std.mem.eql(u8, instName, Instruction.name(.JumpIf))) {
                 line = string.trimLeft(line);
                 if (std.fmt.parseInt(i64, operandStr, 10) catch null) |operand| {
@@ -140,6 +151,8 @@ fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !vo
                 try bm.pushInstruction(.GeF);
             } else if (std.mem.eql(u8, instName, Instruction.name(.LtF))) {
                 try bm.pushInstruction(.LtF);
+            } else if (std.mem.eql(u8, instName, Instruction.name(.Ret))) {
+                try bm.pushInstruction(.Ret);
             } else if (std.mem.eql(u8, instName, Instruction.name(.PrintDebug))) {
                 try bm.pushInstruction(.PrintDebug);
             } else if (std.mem.eql(u8, instName, Instruction.name(.Halt))) {

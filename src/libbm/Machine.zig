@@ -68,7 +68,7 @@ pub fn executeInstruction(self: *Self) !void {
             self.ip += 1;
         },
         .Dup => |distance| {
-            if (self.stackSize - @intCast(usize, distance) < 0) {
+            if (self.stackSize < @intCast(usize, distance)) {
                 return error.StackUnderflow;
             }
             if (self.stackSize == stackCapacity) {
@@ -182,6 +182,21 @@ pub fn executeInstruction(self: *Self) !void {
                 self.ip += 1;
             }
             self.stackSize -= 1;
+        },
+        .Ret => {
+            if (self.stackSize < 1) {
+                return error.StackUnderflow;
+            }
+            self.ip = @bitCast(usize, self.stack[self.stackSize - 1]);
+            self.stackSize -= 1;
+        },
+        .Call => |dest| {
+            if (self.stackSize == self.stack.len) {
+                return error.StackOverflow;
+            }
+            self.stack[self.stackSize] = @bitCast(Word, self.ip + 1);
+            self.stackSize += 1;
+            self.ip = @bitCast(usize, dest);
         },
         .Eq => {
             if (self.stackSize < 2) {

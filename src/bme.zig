@@ -67,6 +67,7 @@ pub fn main() !void {
         var bm = try Machine.initFromFile(inputFilePath);
         bm.executeProgram(parsed.options.limit) catch |e| {
             try bm.dumpStack(@TypeOf(stderr), stderr);
+            std.debug.print("error at {d}\n", .{bm.ip});
             return e;
         };
     }
