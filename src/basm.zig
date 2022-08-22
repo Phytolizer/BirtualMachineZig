@@ -107,6 +107,8 @@ fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !vo
                 try bm.pushInstruction(.PlusI);
             } else if (std.mem.eql(u8, instName, Instruction.name(.PlusF))) {
                 try bm.pushInstruction(.PlusF);
+            } else if (std.mem.eql(u8, instName, Instruction.name(.MultF))) {
+                try bm.pushInstruction(.MultF);
             } else if (std.mem.eql(u8, instName, Instruction.name(.DivF))) {
                 try bm.pushInstruction(.DivF);
             } else if (std.mem.eql(u8, instName, Instruction.name(.Halt))) {

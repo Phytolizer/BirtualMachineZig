@@ -4,6 +4,13 @@ const pkgs = @import("deps.zig").pkgs;
 const Builder = std.build.Builder;
 const Pkg = std.build.Pkg;
 
+fn stripExt(path: []const u8) []const u8 {
+    return if (std.mem.lastIndexOfScalar(u8, path, '.')) |i|
+        path[0..i]
+    else
+        path;
+}
+
 pub fn build(b: *Builder) !void {
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
@@ -71,31 +78,32 @@ pub fn build(b: *Builder) !void {
     const run_debasm_step = b.step("run-debasm", "Run debasm");
     run_debasm_step.dependOn(&debasm_run_cmd.step);
 
-    const examples = [_][]const u8{
-        "123",
-        "123f",
-        "fib",
-    };
+    // Examples
+    {
+        var example_cmds = std.ArrayList(*std.build.RunStep).init(b.allocator);
+        defer example_cmds.deinit();
 
-    var example_cmds: [examples.len]*std.build.RunStep = undefined;
+        var examples_dir = try std.fs.cwd().openIterableDir("examples", .{});
+        defer examples_dir.close();
+        var examples_dir_iter = examples_dir.iterate();
+        while (try examples_dir_iter.next()) |entry| {
+            if (!std.mem.endsWith(u8, entry.name, ".basm")) {
+                continue;
+            }
 
-    var i: usize = 0;
-    while (i < examples.len) : (i += 1) {
-        const example = examples[i];
-        const basm_example = basm_exe.run();
-        const basm_arg = try std.mem.concat(b.allocator, u8, &.{ "examples/", example, ".basm" });
-        defer b.allocator.free(basm_arg);
-        const bm_arg = try std.mem.concat(b.allocator, u8, &.{ "examples/", example, ".bm" });
-        defer b.allocator.free(bm_arg);
-        basm_example.addArgs(&.{ basm_arg, bm_arg });
-        const bme_example = bme_exe.run();
-        bme_example.addArgs(&.{ "-i", bm_arg, "-l", "69" });
-        bme_example.step.dependOn(&basm_example.step);
-        example_cmds[i] = bme_example;
-    }
+            const example = stripExt(entry.name);
+            const basm_example = basm_exe.run();
+            const basm_arg = try std.mem.concat(b.allocator, u8, &.{ "examples/", example, ".basm" });
+            defer b.allocator.free(basm_arg);
+            const bm_arg = try std.mem.concat(b.allocator, u8, &.{ "examples/", example, ".bm" });
+            defer b.allocator.free(bm_arg);
+            basm_example.addArgs(&.{ basm_arg, bm_arg });
+            try example_cmds.append(basm_example);
+        }
 
-    const run_examples_step = b.step("run-examples", "Run all examples");
-    for (example_cmds) |cmd| {
-        run_examples_step.dependOn(&cmd.step);
+        const run_examples_step = b.step("examples", "Compile all examples");
+        for (example_cmds.items) |cmd| {
+            run_examples_step.dependOn(&cmd.step);
+        }
     }
 }
