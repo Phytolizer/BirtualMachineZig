@@ -2,6 +2,7 @@ const std = @import("std");
 const libbm = @import("bm");
 
 const Machine = libbm.Machine;
+const Instruction = libbm.instruction.Instruction;
 
 pub fn main() !void {
     var gpAllocator = std.heap.GeneralPurposeAllocator(.{}){};
@@ -21,45 +22,11 @@ pub fn main() !void {
 
     const stdout = std.io.getStdOut().writer();
 
-    var i: usize = 0;
-    while (i < bm.programSize) : (i += 1) {
-        switch (bm.program[i]) {
-            .Nop => {
-                try stdout.writeAll("nop\n");
-            },
-            .Push => |operand| {
-                try stdout.print("push {d}\n", .{@bitCast(i64, operand)});
-            },
-            .Dup => |operand| {
-                try stdout.print("dup {d}\n", .{@bitCast(i64, operand)});
-            },
-            .Plus => {
-                try stdout.writeAll("plus\n");
-            },
-            .Minus => {
-                try stdout.writeAll("minus\n");
-            },
-            .Mult => {
-                try stdout.writeAll("mult\n");
-            },
-            .Div => {
-                try stdout.writeAll("div\n");
-            },
-            .Jump => |operand| {
-                try stdout.print("jmp {d}\n", .{@bitCast(i64, operand)});
-            },
-            .JumpIf => |operand| {
-                try stdout.print("jmp_if {d}\n", .{@bitCast(i64, operand)});
-            },
-            .Eq => {
-                try stdout.writeAll("eq\n");
-            },
-            .Halt => {
-                try stdout.writeAll("halt\n");
-            },
-            .PrintDebug => {
-                try stdout.writeAll("print_debug\n");
-            },
+    for (bm.program[0..bm.programSize]) |inst| {
+        try stdout.print("{s}", .{Instruction.name(inst)});
+        if (inst.operand()) |operand| {
+            try stdout.print(" {d}", .{operand});
         }
+        try stdout.writeAll("\n");
     }
 }

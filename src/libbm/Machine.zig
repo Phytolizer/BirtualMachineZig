@@ -78,7 +78,7 @@ pub fn executeInstruction(self: *Self) !void {
             self.stackSize += 1;
             self.ip += 1;
         },
-        .Plus => {
+        .PlusI => {
             if (self.stackSize < 2) {
                 return error.StackUnderflow;
             }
@@ -86,7 +86,7 @@ pub fn executeInstruction(self: *Self) !void {
             self.stackSize -= 1;
             self.ip += 1;
         },
-        .Minus => {
+        .MinusI => {
             if (self.stackSize < 2) {
                 return error.StackUnderflow;
             }
@@ -94,7 +94,7 @@ pub fn executeInstruction(self: *Self) !void {
             self.stackSize -= 1;
             self.ip += 1;
         },
-        .Mult => {
+        .MultI => {
             if (self.stackSize < 2) {
                 return error.StackUnderflow;
             }
@@ -102,7 +102,7 @@ pub fn executeInstruction(self: *Self) !void {
             self.stackSize -= 1;
             self.ip += 1;
         },
-        .Div => {
+        .DivI => {
             if (self.stackSize < 2) {
                 return error.StackUnderflow;
             }

@@ -79,15 +79,15 @@ fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !vo
                 continue;
             }
             const operandStr = string.trim(string.chopByDelim(&line, '#'));
-            if (std.mem.eql(u8, instName, "push")) {
+            if (std.mem.eql(u8, instName, Instruction.name(.Push))) {
                 line = string.trimLeft(line);
                 const operand = try std.fmt.parseInt(i64, operandStr, 10);
                 try bm.pushInstruction(.{ .Push = @bitCast(Word, operand) });
-            } else if (std.mem.eql(u8, instName, "dup")) {
+            } else if (std.mem.eql(u8, instName, Instruction.name(.Dup))) {
                 line = string.trimLeft(line);
                 const operand = try std.fmt.parseInt(i64, operandStr, 10);
                 try bm.pushInstruction(.{ .Dup = @bitCast(Word, operand) });
-            } else if (std.mem.eql(u8, instName, "jmp")) {
+            } else if (std.mem.eql(u8, instName, Instruction.name(.Jump))) {
                 line = string.trimLeft(line);
                 const operand = std.fmt.parseInt(i64, operandStr, 10) catch null;
                 if (operand) |op| {
@@ -99,11 +99,11 @@ fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !vo
                     });
                     try bm.pushInstruction(.{ .Jump = 0 });
                 }
-            } else if (std.mem.eql(u8, instName, "plus")) {
-                try bm.pushInstruction(.Plus);
-            } else if (std.mem.eql(u8, instName, "halt")) {
+            } else if (std.mem.eql(u8, instName, Instruction.name(.PlusI))) {
+                try bm.pushInstruction(.PlusI);
+            } else if (std.mem.eql(u8, instName, Instruction.name(.Halt))) {
                 try bm.pushInstruction(.Halt);
-            } else if (std.mem.eql(u8, instName, "nop")) {
+            } else if (std.mem.eql(u8, instName, Instruction.name(.Nop))) {
                 try bm.pushInstruction(.Nop);
             } else {
                 std.debug.print("ERROR: `{s}` is not a recognized instruction\n", .{instName});
