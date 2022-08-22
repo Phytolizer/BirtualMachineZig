@@ -14,7 +14,7 @@ gyro build
 
 Three executables will be created in zig-out/bin. They are described below.
 
-### basm
+### basm ([Source](src/basm.zig))
 The assembler takes an input file (conventionally, \*.basm) and converts it to machine-specific bytecode (conventionally, \*.bm).
 Labels are supported here, and jumps may refer to absolute offsets or label names.
 
@@ -24,7 +24,7 @@ Labels are supported here, and jumps may refer to absolute offsets or label name
 zig build run-basm -- examples/e.basm examples/e.bm
 ```
 
-### bme
+### bme ([Source](src/bme.zig))
 The emulator takes an input file (\*.bm) and simulates the machine. The value at the top of the stack can be dumped with the `print_debug` instruction,
 or the entire stack may be dumped by passing `-d` to bme. (The latter will also allow stepping instruction by instruction.)
 
@@ -34,7 +34,7 @@ or the entire stack may be dumped by passing `-d` to bme. (The latter will also 
 zig build run-bme -- -i examples/e.bm
 ```
 
-### debasm
+### debasm ([Source](src/debasm.zig))
 The disassembler takes the bytecode file and converts it back to BASM assembly. It is guaranteed that
 the output of `debasm` may be passed back to `basm` and create identical bytecode.
 
