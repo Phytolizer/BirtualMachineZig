@@ -80,5 +80,6 @@ pub fn main() !void {
             std.debug.print("error at {d}\n", .{bm.ip});
             return e;
         };
+        try bm.dumpStack(@TypeOf(stdout), stdout);
     }
 }

@@ -157,8 +157,6 @@ fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !vo
                 try bm.pushInstruction(.LtF);
             } else if (std.mem.eql(u8, instName, Instruction.name(.Ret))) {
                 try bm.pushInstruction(.Ret);
-            } else if (std.mem.eql(u8, instName, Instruction.name(.PrintDebug))) {
-                try bm.pushInstruction(.PrintDebug);
             } else if (std.mem.eql(u8, instName, Instruction.name(.Halt))) {
                 try bm.pushInstruction(.Halt);
             } else if (std.mem.eql(u8, instName, Instruction.name(.Nop))) {

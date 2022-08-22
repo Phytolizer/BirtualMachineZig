@@ -41,6 +41,4 @@ loop:
     drop
     drop
 
-    print_debug
-
     halt

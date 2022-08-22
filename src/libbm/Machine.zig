@@ -255,19 +255,6 @@ pub fn executeInstruction(self: *Self) !void {
         .Halt => {
             self.halt = true;
         },
-        .PrintDebug => {
-            if (self.stackSize < 1) {
-                return error.StackUnderflow;
-            }
-            std.debug.print("  u64: {d} i64: {d} f64: {e:.6} ptr: 0x{x:0>16}\n", .{
-                self.stack[self.stackSize - 1],
-                @bitCast(i64, self.stack[self.stackSize - 1]),
-                @bitCast(f64, self.stack[self.stackSize - 1]),
-                self.stack[self.stackSize - 1],
-            });
-            self.stackSize -= 1;
-            self.ip += 1;
-        },
     }
 }
 

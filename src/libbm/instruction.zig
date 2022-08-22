@@ -26,7 +26,6 @@ pub const Instruction = union(enum) {
     LtF,
     Not,
     Halt,
-    PrintDebug,
 
     const Tag = @typeInfo(Instruction).Union.tag_type.?;
 
@@ -55,7 +54,6 @@ pub const Instruction = union(enum) {
             .LtF => "ltf",
             .Not => "not",
             .Halt => "halt",
-            .PrintDebug => "print_debug",
         };
     }
 
