@@ -55,16 +55,6 @@ fn contains(comptime T: type, slice: []const T, value: T) bool {
     return std.mem.indexOfScalar(T, slice, value) != null;
 }
 
-fn pushI64(bm: *Machine, operandStr: []const u8) !void {
-    const operand = try std.fmt.parseInt(i64, operandStr, 10);
-    try bm.pushInstruction(.{ .Push = @bitCast(Word, operand) });
-}
-
-fn pushF64(bm: *Machine, operandStr: []const u8) !void {
-    const operand = try std.fmt.parseFloat(f64, operandStr);
-    try bm.pushInstruction(.{ .Push = @bitCast(Word, operand) });
-}
-
 fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !void {
     var sourcePtr = source;
     bm.programSize = 0;
@@ -91,18 +81,21 @@ fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !vo
             const operandStr = string.trim(string.chopByDelim(&line, '#'));
             if (std.mem.eql(u8, instName, Instruction.name(.Push))) {
                 line = string.trimLeft(line);
-                pushI64(bm, operandStr) catch {
-                    try pushF64(bm, operandStr);
-                };
+                if (std.fmt.parseInt(i64, operandStr, 10) catch null) |operand| {
+                    try bm.pushInstruction(.{ .Push = @bitCast(Word, operand) });
+                } else if (std.fmt.parseFloat(f64, operandStr) catch null) |operand| {
+                    try bm.pushInstruction(.{ .Push = @bitCast(Word, operand) });
+                } else {
+                    return error.InvalidPushOperand;
+                }
             } else if (std.mem.eql(u8, instName, Instruction.name(.Dup))) {
                 line = string.trimLeft(line);
                 const operand = try std.fmt.parseInt(i64, operandStr, 10);
                 try bm.pushInstruction(.{ .Dup = @bitCast(Word, operand) });
             } else if (std.mem.eql(u8, instName, Instruction.name(.Jump))) {
                 line = string.trimLeft(line);
-                const operand = std.fmt.parseInt(i64, operandStr, 10) catch null;
-                if (operand) |op| {
-                    try bm.pushInstruction(.{ .Jump = @bitCast(Word, op) });
+                if (std.fmt.parseInt(i64, operandStr, 10) catch null) |operand| {
+                    try bm.pushInstruction(.{ .Jump = @bitCast(Word, operand) });
                 } else {
                     try ctx.deferredOperands.append(.{
                         .label = operandStr,
