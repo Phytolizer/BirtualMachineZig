@@ -187,11 +187,12 @@ fn usage(executableName: []const u8) void {
 pub fn main() !void {
     var gpAllocator = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpAllocator.detectLeaks();
-    const allocator = gpAllocator.backing_allocator;
+    const allocator = gpAllocator.allocator();
     const parsed = args.parseForCurrentProcess(struct {}, allocator, .silent) catch {
         usage("basm");
         return error.InvalidUsage;
     };
+    defer parsed.deinit();
     if (parsed.positionals.len < 2) {
         usage(parsed.executable_name.?);
         return error.InvalidUsage;

@@ -7,7 +7,7 @@ const Instruction = libbm.instruction.Instruction;
 pub fn main() !void {
     var gpAllocator = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpAllocator.detectLeaks();
-    const allocator = gpAllocator.backing_allocator;
+    const allocator = gpAllocator.allocator();
 
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);

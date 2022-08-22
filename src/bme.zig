@@ -17,7 +17,7 @@ fn ignoreLine(reader: anytype) !bool {
 pub fn main() !void {
     var gpAllocator = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpAllocator.detectLeaks();
-    const allocator = gpAllocator.backing_allocator;
+    const allocator = gpAllocator.allocator();
 
     const stderr = std.io.getStdErr().writer();
 
@@ -37,6 +37,7 @@ pub fn main() !void {
         try usage(@TypeOf(stderr), stderr, "bme");
         return e;
     };
+    defer parsed.deinit();
     if (parsed.options.input == null) {
         try usage(@TypeOf(stderr), stderr, parsed.executable_name.?);
         std.debug.print("ERROR: expected input\n", .{});
