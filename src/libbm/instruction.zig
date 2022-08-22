@@ -18,6 +18,7 @@ pub const Instruction = union(enum) {
     Jump: Word,
     JumpIf: Word,
     Eq,
+    Not,
     Halt,
     PrintDebug,
 
@@ -40,14 +41,15 @@ pub const Instruction = union(enum) {
             .Jump => "jmp",
             .JumpIf => "jmp_if",
             .Eq => "eq",
+            .Not => "not",
             .Halt => "halt",
             .PrintDebug => "print_debug",
         };
     }
 
-    pub fn operand(i: Instruction) ?Word {
-        return switch (i) {
-            .Push, .Dup, .Swap, .Jump, .JumpIf => |operand| operand,
+    pub fn operand(i: *Instruction) ?*Word {
+        return switch (i.*) {
+            .Push, .Dup, .Swap, .Jump, .JumpIf => |*operand| operand,
             else => null,
         };
     }

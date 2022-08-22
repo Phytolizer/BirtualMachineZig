@@ -185,6 +185,13 @@ pub fn executeInstruction(self: *Self) !void {
             self.stackSize -= 1;
             self.ip += 1;
         },
+        .Not => {
+            if (self.stackSize < 1) {
+                return error.StackUnderflow;
+            }
+            self.stack[self.stackSize - 1] = if (self.stack[self.stackSize - 1] == 0) 1 else 0;
+            self.ip += 1;
+        },
         .Halt => {
             self.halt = true;
         },

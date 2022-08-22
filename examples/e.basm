@@ -18,4 +18,11 @@ loop:
     swap 1
     swap 2
 
-    jmp loop
+    dup 2
+    push 69.0
+    eq
+    not
+
+    jmp_if loop
+
+    halt

@@ -22,10 +22,10 @@ pub fn main() !void {
 
     const stdout = std.io.getStdOut().writer();
 
-    for (bm.program[0..bm.programSize]) |inst| {
-        try stdout.print("{s}", .{Instruction.name(inst)});
+    for (bm.program[0..bm.programSize]) |*inst| {
+        try stdout.print("{s}", .{Instruction.name(inst.*)});
         if (inst.operand()) |operand| {
-            try stdout.print(" {d}", .{operand});
+            try stdout.print(" {d}", .{operand.*});
         }
         try stdout.writeAll("\n");
     }

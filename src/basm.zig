@@ -107,6 +107,17 @@ fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !vo
                     });
                     try bm.pushInstruction(.{ .Jump = 0 });
                 }
+            } else if (std.mem.eql(u8, instName, Instruction.name(.JumpIf))) {
+                line = string.trimLeft(line);
+                if (std.fmt.parseInt(i64, operandStr, 10) catch null) |operand| {
+                    try bm.pushInstruction(.{ .Jump = @bitCast(Word, operand) });
+                } else {
+                    try ctx.deferredOperands.append(.{
+                        .label = operandStr,
+                        .address = bm.programSize,
+                    });
+                    try bm.pushInstruction(.{ .JumpIf = 0 });
+                }
             } else if (std.mem.eql(u8, instName, Instruction.name(.PlusI))) {
                 try bm.pushInstruction(.PlusI);
             } else if (std.mem.eql(u8, instName, Instruction.name(.PlusF))) {
@@ -115,6 +126,10 @@ fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !vo
                 try bm.pushInstruction(.MultF);
             } else if (std.mem.eql(u8, instName, Instruction.name(.DivF))) {
                 try bm.pushInstruction(.DivF);
+            } else if (std.mem.eql(u8, instName, Instruction.name(.Eq))) {
+                try bm.pushInstruction(.Eq);
+            } else if (std.mem.eql(u8, instName, Instruction.name(.Not))) {
+                try bm.pushInstruction(.Not);
             } else if (std.mem.eql(u8, instName, Instruction.name(.Halt))) {
                 try bm.pushInstruction(.Halt);
             } else if (std.mem.eql(u8, instName, Instruction.name(.Nop))) {
@@ -127,14 +142,11 @@ fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !vo
     }
 
     for (ctx.deferredOperands.items) |jump| {
-        switch (bm.program[jump.address]) {
-            .Jump => |*target| {
-                const label = try ctx.find(jump.label);
-                target.* = @intCast(Word, label);
-            },
-            else => {
-                return error.NotAJump;
-            },
+        if (bm.program[jump.address].operand()) |target| {
+            const label = try ctx.find(jump.label);
+            target.* = @intCast(Word, label);
+        } else {
+            return error.CannotPatch;
         }
     }
 }
