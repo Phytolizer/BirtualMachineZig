@@ -93,7 +93,7 @@ pub fn executeInstruction(self: *Self) !void {
             if (self.stackSize < 2) {
                 return error.StackUnderflow;
             }
-            self.stack[self.stackSize - 2] = self.stack[self.stackSize - 2] +% self.stack[self.stackSize - 1];
+            self.stack[self.stackSize - 2] = @bitCast(Word, @bitCast(i64, self.stack[self.stackSize - 2]) +% @bitCast(i64, self.stack[self.stackSize - 1]));
             self.stackSize -= 1;
             self.ip += 1;
         },
@@ -101,7 +101,7 @@ pub fn executeInstruction(self: *Self) !void {
             if (self.stackSize < 2) {
                 return error.StackUnderflow;
             }
-            self.stack[self.stackSize - 2] = self.stack[self.stackSize - 2] -% self.stack[self.stackSize - 1];
+            self.stack[self.stackSize - 2] = @bitCast(Word, @bitCast(i64, self.stack[self.stackSize - 2]) -% @bitCast(i64, self.stack[self.stackSize - 1]));
             self.stackSize -= 1;
             self.ip += 1;
         },
@@ -109,7 +109,7 @@ pub fn executeInstruction(self: *Self) !void {
             if (self.stackSize < 2) {
                 return error.StackUnderflow;
             }
-            self.stack[self.stackSize - 2] = self.stack[self.stackSize - 2] *% self.stack[self.stackSize - 1];
+            self.stack[self.stackSize - 2] = @bitCast(Word, @bitCast(i64, self.stack[self.stackSize - 2]) *% @bitCast(i64, self.stack[self.stackSize - 1]));
             self.stackSize -= 1;
             self.ip += 1;
         },
@@ -120,7 +120,10 @@ pub fn executeInstruction(self: *Self) !void {
             if (self.stack[self.stackSize - 1] == 0) {
                 return error.DivisionByZero;
             }
-            self.stack[self.stackSize - 2] = @divExact(self.stack[self.stackSize - 2], self.stack[self.stackSize - 1]);
+            self.stack[self.stackSize - 2] = @bitCast(Word, @divExact(
+                @bitCast(i64, self.stack[self.stackSize - 2]),
+                @bitCast(i64, self.stack[self.stackSize - 1]),
+            ));
             self.stackSize -= 1;
             self.ip += 1;
         },
