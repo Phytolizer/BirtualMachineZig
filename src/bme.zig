@@ -56,6 +56,7 @@ pub fn main() !void {
     var bm = try Machine.initFromFile(allocator, inputFilePath);
     try bm.pushNative(&Machine.alloc);
     try bm.pushNative(&Machine.free);
+    try bm.pushNative(&Machine.printF64);
 
     if (parsed.options.debug) {
         const limit = parsed.options.limit;

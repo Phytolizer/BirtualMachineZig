@@ -13,7 +13,7 @@ const Self = @This();
 
 pub const NativeError = error{
     StackUnderflow,
-} || std.mem.Allocator.Error;
+} || std.mem.Allocator.Error || std.fs.File.WriteError;
 
 pub const Native = *const fn (bm: *Self) NativeError!void;
 
@@ -334,4 +334,16 @@ pub fn free(self: *Self) NativeError!void {
 }
 comptime {
     checkNative(&free);
+}
+
+pub fn printF64(self: *Self) NativeError!void {
+    if (self.stackSize < 1) {
+        return error.StackUnderflow;
+    }
+    const value = @bitCast(f64, self.stack[self.stackSize - 1]);
+    self.stackSize -= 1;
+    try std.io.getStdOut().writer().print("{d:.6}\n", .{value});
+}
+comptime {
+    checkNative(&printF64);
 }
