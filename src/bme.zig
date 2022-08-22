@@ -3,6 +3,8 @@ const libbm = @import("bm");
 const args = @import("args");
 
 const Machine = libbm.Machine;
+const Word = libbm.defs.Word;
+const Instruction = libbm.instruction.Instruction;
 
 fn usage(comptime Writer: type, writer: Writer, executableName: []const u8) !void {
     try writer.print("Usage: {s} <-i input.bm> [-l limit] [-d]\n", .{executableName});
@@ -53,6 +55,7 @@ pub fn main() !void {
 
     var bm = try Machine.initFromFile(allocator, inputFilePath);
     try bm.pushNative(&Machine.alloc);
+    try bm.pushNative(&Machine.free);
 
     if (parsed.options.debug) {
         const limit = parsed.options.limit;
@@ -61,6 +64,11 @@ pub fn main() !void {
         defer buf.deinit();
         while ((limit == null or i < limit.?) and !bm.halt) : (i += 1) {
             try bm.dumpStack(@TypeOf(stdout), stdout);
+            const operand = if (bm.program[bm.ip].operand()) |op|
+                op.*
+            else
+                0;
+            try stdout.print("{s} {d}\n", .{ Instruction.name(bm.program[bm.ip]), operand });
             if (!try ignoreLine(std.io.getStdIn().reader())) {
                 break;
             }

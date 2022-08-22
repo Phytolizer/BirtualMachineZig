@@ -98,6 +98,7 @@ pub fn build(b: *Builder) !void {
             const bm_arg = try std.mem.concat(b.allocator, u8, &.{ "examples/", example, ".bm" });
             defer b.allocator.free(bm_arg);
             basm_example.addArgs(&.{ basm_arg, bm_arg });
+            basm_example.print = true;
             try example_cmds.append(basm_example);
         }
 

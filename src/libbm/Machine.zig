@@ -332,3 +332,12 @@ pub fn alloc(self: *Self) NativeError!void {
 comptime {
     std.debug.assert(@TypeOf(&alloc) == Native);
 }
+
+pub fn free(self: *Self) NativeError!void {
+    if (self.stackSize < 1) {
+        return error.StackUnderflow;
+    }
+    const ptr = @intToPtr([]u8, self.stack[self.stackSize - 1]);
+    self.stackSize -= 1;
+    self.allocator.free(ptr);
+}
