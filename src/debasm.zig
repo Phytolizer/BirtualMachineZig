@@ -18,7 +18,7 @@ pub fn main() !void {
     }
 
     const inputFilePath = args[1];
-    var bm = try Machine.initFromFile(inputFilePath);
+    var bm = try Machine.initFromFile(allocator, inputFilePath);
 
     const stdout = std.io.getStdOut().writer();
 

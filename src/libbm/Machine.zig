@@ -1,33 +1,45 @@
 const std = @import("std");
 const defs = @import("defs.zig");
 
+const Allocator = std.mem.Allocator;
 const Instruction = @import("instruction.zig").Instruction;
 const Word = defs.Word;
 
 const stackCapacity = defs.stackCapacity;
 const programCapacity = 1024;
+const nativesCapacity = 1024;
 
+const Self = @This();
+
+pub const NativeError = error{
+    StackUnderflow,
+} || std.mem.Allocator.Error;
+
+pub const Native = *const fn (bm: *Self) NativeError!void;
+
+allocator: Allocator,
 stack: [stackCapacity]Word = undefined,
 stackSize: usize = 0,
 program: [programCapacity]Instruction = undefined,
 programSize: usize = 0,
 ip: usize = 0,
 halt: bool = false,
+natives: [nativesCapacity]Native = undefined,
+nativesSize: usize = 0,
 
-const Self = @This();
-
-pub fn initFromMemory(program: []const Instruction) !Self {
+pub fn initFromMemory(allocator: Allocator, program: []const Instruction) !Self {
     if (program.len > programCapacity) {
         return error.ProgramTooLong;
     }
     var result = Self{
+        .allocator = allocator,
         .programSize = program.len,
     };
     std.mem.copy(Instruction, &result.program, program);
     return result;
 }
 
-pub fn initFromFile(filePath: []const u8) !Self {
+pub fn initFromFile(allocator: Allocator, filePath: []const u8) !Self {
     var file = try std.fs.cwd().openFile(filePath, .{});
     defer file.close();
     const stat = try file.stat();
@@ -39,6 +51,7 @@ pub fn initFromFile(filePath: []const u8) !Self {
     }
 
     var result = Self{
+        .allocator = allocator,
         .programSize = stat.size / @sizeOf(Instruction),
     };
 
@@ -198,6 +211,13 @@ pub fn executeInstruction(self: *Self) !void {
             self.stackSize += 1;
             self.ip = @bitCast(usize, dest);
         },
+        .Native => |index| {
+            if (index >= self.natives.len) {
+                return error.IllegalOperand;
+            }
+            try self.natives[index](self);
+            self.ip += 1;
+        },
         .Eq => {
             if (self.stackSize < 2) {
                 return error.StackUnderflow;
@@ -291,4 +311,24 @@ pub fn pushInstruction(self: *Self, inst: Instruction) !void {
     }
     self.program[self.programSize] = inst;
     self.programSize += 1;
+}
+
+pub fn pushNative(self: *Self, native: Native) !void {
+    if (self.nativesSize == nativesCapacity) {
+        return error.TooManyNatives;
+    }
+    self.natives[self.nativesSize] = native;
+    self.nativesSize += 1;
+}
+
+pub fn alloc(self: *Self) NativeError!void {
+    if (self.stackSize < 1) {
+        return error.StackUnderflow;
+    }
+    const size = self.stack[self.stackSize - 1];
+    var mem = try self.allocator.alloc(u8, @bitCast(usize, size));
+    self.stack[self.stackSize - 1] = @bitCast(Word, @ptrToInt(mem.ptr));
+}
+comptime {
+    std.debug.assert(@TypeOf(&alloc) == Native);
 }

@@ -118,6 +118,10 @@ fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !vo
                     });
                     try bm.pushInstruction(.{ .Call = 0 });
                 }
+            } else if (std.mem.eql(u8, instName, Instruction.name(.Native))) {
+                line = string.trimLeft(line);
+                const operand = try std.fmt.parseInt(i64, operandStr, 10);
+                try bm.pushInstruction(.{ .Native = @bitCast(Word, operand) });
             } else if (std.mem.eql(u8, instName, Instruction.name(.JumpIf))) {
                 line = string.trimLeft(line);
                 if (std.fmt.parseInt(i64, operandStr, 10) catch null) |operand| {
@@ -196,7 +200,7 @@ pub fn main() !void {
     const inputFilePath = parsed.positionals[0];
     const outputFilePath = parsed.positionals[1];
 
-    var bm = Machine{};
+    var bm = Machine{ .allocator = allocator };
     var ctx = AssemblerContext.init(allocator);
     defer ctx.deinit();
     var sourceCode = try file.slurp(inputFilePath, allocator);

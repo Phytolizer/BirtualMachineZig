@@ -50,8 +50,10 @@ pub fn main() !void {
 
     const inputFilePath = parsed.options.input.?;
 
+    var bm = try Machine.initFromFile(allocator, inputFilePath);
+    try bm.pushNative(&Machine.alloc);
+
     if (parsed.options.debug) {
-        var bm = try Machine.initFromFile(inputFilePath);
         const limit = parsed.options.limit;
         var i: usize = 0;
         var buf = std.ArrayList(u8).init(allocator);
@@ -64,7 +66,6 @@ pub fn main() !void {
             try bm.executeInstruction();
         }
     } else {
-        var bm = try Machine.initFromFile(inputFilePath);
         bm.executeProgram(parsed.options.limit) catch |e| {
             try bm.dumpStack(@TypeOf(stderr), stderr);
             std.debug.print("error at {d}\n", .{bm.ip});
