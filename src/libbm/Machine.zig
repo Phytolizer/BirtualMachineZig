@@ -78,13 +78,15 @@ pub fn executeInstruction(self: *Self) !void {
             self.stackSize += 1;
             self.ip += 1;
         },
-        .Swap => {
-            if (self.stackSize < 2) {
+        .Swap => |distance| {
+            if (self.stackSize <= distance) {
                 return error.StackUnderflow;
             }
-            const temp = self.stack[self.stackSize - 2];
-            self.stack[self.stackSize - 2] = self.stack[self.stackSize - 1];
-            self.stack[self.stackSize - 1] = temp;
+            const a = self.stackSize - 1;
+            const b = self.stackSize - 1 - @intCast(usize, distance);
+            const t = self.stack[a];
+            self.stack[a] = self.stack[b];
+            self.stack[b] = t;
             self.ip += 1;
         },
         .PlusI => {

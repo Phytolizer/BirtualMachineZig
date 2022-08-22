@@ -92,6 +92,10 @@ fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !vo
                 line = string.trimLeft(line);
                 const operand = try std.fmt.parseInt(i64, operandStr, 10);
                 try bm.pushInstruction(.{ .Dup = @bitCast(Word, operand) });
+            } else if (std.mem.eql(u8, instName, Instruction.name(.Swap))) {
+                line = string.trimLeft(line);
+                const operand = try std.fmt.parseInt(i64, operandStr, 10);
+                try bm.pushInstruction(.{ .Swap = @bitCast(Word, operand) });
             } else if (std.mem.eql(u8, instName, Instruction.name(.Jump))) {
                 line = string.trimLeft(line);
                 if (std.fmt.parseInt(i64, operandStr, 10) catch null) |operand| {
@@ -113,8 +117,6 @@ fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !vo
                 try bm.pushInstruction(.DivF);
             } else if (std.mem.eql(u8, instName, Instruction.name(.Halt))) {
                 try bm.pushInstruction(.Halt);
-            } else if (std.mem.eql(u8, instName, Instruction.name(.Swap))) {
-                try bm.pushInstruction(.Swap);
             } else if (std.mem.eql(u8, instName, Instruction.name(.Nop))) {
                 try bm.pushInstruction(.Nop);
             } else {

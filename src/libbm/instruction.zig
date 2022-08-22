@@ -6,7 +6,7 @@ pub const Instruction = union(enum) {
     Nop,
     Push: Word,
     Dup: Word,
-    Swap,
+    Swap: Word,
     PlusI,
     MinusI,
     MultI,
@@ -47,7 +47,7 @@ pub const Instruction = union(enum) {
 
     pub fn operand(i: Instruction) ?Word {
         return switch (i) {
-            .Push, .Dup, .Jump, .JumpIf => |operand| operand,
+            .Push, .Dup, .Swap, .Jump, .JumpIf => |operand| operand,
             else => null,
         };
     }
