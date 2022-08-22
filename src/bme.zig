@@ -69,6 +69,5 @@ pub fn main() !void {
             try bm.dumpStack(@TypeOf(stderr), stderr);
             return e;
         };
-        try bm.dumpStack(@TypeOf(stdout), stdout);
     }
 }

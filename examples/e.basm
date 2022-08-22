@@ -20,9 +20,10 @@ loop:
 
     dup 2
     push 69.0
-    eq
-    not
+    ltf
 
     jmp_if loop
+
+    print_debug
 
     halt

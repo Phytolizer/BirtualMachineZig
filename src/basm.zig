@@ -130,6 +130,12 @@ fn translateSource(source: []const u8, bm: *Machine, ctx: *AssemblerContext) !vo
                 try bm.pushInstruction(.Eq);
             } else if (std.mem.eql(u8, instName, Instruction.name(.Not))) {
                 try bm.pushInstruction(.Not);
+            } else if (std.mem.eql(u8, instName, Instruction.name(.GeF))) {
+                try bm.pushInstruction(.GeF);
+            } else if (std.mem.eql(u8, instName, Instruction.name(.LtF))) {
+                try bm.pushInstruction(.LtF);
+            } else if (std.mem.eql(u8, instName, Instruction.name(.PrintDebug))) {
+                try bm.pushInstruction(.PrintDebug);
             } else if (std.mem.eql(u8, instName, Instruction.name(.Halt))) {
                 try bm.pushInstruction(.Halt);
             } else if (std.mem.eql(u8, instName, Instruction.name(.Nop))) {

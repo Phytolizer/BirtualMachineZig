@@ -185,6 +185,24 @@ pub fn executeInstruction(self: *Self) !void {
             self.stackSize -= 1;
             self.ip += 1;
         },
+        .GeF => {
+            if (self.stackSize < 2) {
+                return error.StackUnderflow;
+            }
+            const value = @bitCast(f64, self.stack[self.stackSize - 2]) >= @bitCast(f64, self.stack[self.stackSize - 1]);
+            self.stack[self.stackSize - 2] = if (value) 1 else 0;
+            self.stackSize -= 1;
+            self.ip += 1;
+        },
+        .LtF => {
+            if (self.stackSize < 2) {
+                return error.StackUnderflow;
+            }
+            const value = @bitCast(f64, self.stack[self.stackSize - 2]) < @bitCast(f64, self.stack[self.stackSize - 1]);
+            self.stack[self.stackSize - 2] = if (value) 1 else 0;
+            self.stackSize -= 1;
+            self.ip += 1;
+        },
         .Not => {
             if (self.stackSize < 1) {
                 return error.StackUnderflow;
@@ -199,7 +217,12 @@ pub fn executeInstruction(self: *Self) !void {
             if (self.stackSize < 1) {
                 return error.StackUnderflow;
             }
-            std.debug.print("{d}\n", .{self.stack[self.stackSize - 1]});
+            std.debug.print("  u64: {d} i64: {d} f64: {e:.6} ptr: 0x{x:0>16}\n", .{
+                self.stack[self.stackSize - 1],
+                @bitCast(i64, self.stack[self.stackSize - 1]),
+                @bitCast(f64, self.stack[self.stackSize - 1]),
+                self.stack[self.stackSize - 1],
+            });
             self.stackSize -= 1;
             self.ip += 1;
         },
