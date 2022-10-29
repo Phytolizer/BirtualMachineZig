@@ -5,11 +5,12 @@ It is stack-based and supports named labels, and both integer and floating-point
 
 ## Compilation
 
-The project builds with [Zig](https://ziglang.org) and [Gyro](https://github.com/mattnite/gyro).
+The project builds with [Zig](https://ziglang.org).
 
 To build:
 ```console
-gyro build
+git submodule update --init  # in case you didn't already
+zig build
 ```
 
 Three executables will be created in zig-out/bin. They are described below.
