@@ -1,5 +1,9 @@
 const std = @import("std");
-const pkgs = @import("deps.zig").pkgs;
+
+const args = Pkg{
+    .name = "args",
+    .source = .{ .path = "deps/zig-args/args.zig" },
+};
 
 const Builder = std.build.Builder;
 const Pkg = std.build.Pkg;
@@ -35,13 +39,13 @@ pub fn build(b: *Builder) !void {
     basm_exe.setTarget(target);
     basm_exe.setBuildMode(mode);
     basm_exe.addPackage(libbm_pkg);
-    basm_exe.addPackage(pkgs.args);
+    basm_exe.addPackage(args);
     basm_exe.install();
 
     const basm_run_cmd = basm_exe.run();
     basm_run_cmd.step.dependOn(b.getInstallStep());
-    if (b.args) |args| {
-        basm_run_cmd.addArgs(args);
+    if (b.args) |b_args| {
+        basm_run_cmd.addArgs(b_args);
     }
 
     const run_basm_step = b.step("run-basm", "Run basm");
@@ -51,13 +55,13 @@ pub fn build(b: *Builder) !void {
     bme_exe.setTarget(target);
     bme_exe.setBuildMode(mode);
     bme_exe.addPackage(libbm_pkg);
-    bme_exe.addPackage(pkgs.args);
+    bme_exe.addPackage(args);
     bme_exe.install();
 
     const bme_run_cmd = bme_exe.run();
     bme_run_cmd.step.dependOn(b.getInstallStep());
-    if (b.args) |args| {
-        bme_run_cmd.addArgs(args);
+    if (b.args) |b_args| {
+        bme_run_cmd.addArgs(b_args);
     }
 
     const run_bme_step = b.step("run-bme", "Run bme");
@@ -71,8 +75,8 @@ pub fn build(b: *Builder) !void {
 
     const debasm_run_cmd = debasm_exe.run();
     debasm_run_cmd.step.dependOn(b.getInstallStep());
-    if (b.args) |args| {
-        debasm_run_cmd.addArgs(args);
+    if (b.args) |b_args| {
+        debasm_run_cmd.addArgs(b_args);
     }
 
     const run_debasm_step = b.step("run-debasm", "Run debasm");

@@ -66,7 +66,7 @@ pub const Instruction = union(enum) {
             .JumpIf,
             .Call,
             .Native,
-            => |*operand| operand,
+            => |*op| op,
             else => null,
         };
     }
