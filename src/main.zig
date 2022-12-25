@@ -58,11 +58,11 @@ const instKindNames = blk: {
 
 const Bm = struct {
     stack: [stack_capacity]Word = [_]Word{0} ** stack_capacity,
-    stack_size: usize = 0,
+    stack_size: Word = 0,
 
     program: [program_capacity]Inst = undefined,
-    program_size: usize = 0,
-    ip: usize = 0,
+    program_size: Word = 0,
+    ip: Word = 0,
 
     halt: bool = false,
 
@@ -76,57 +76,62 @@ const Bm = struct {
 
     fn loadProgramFromMemory(self: *@This(), program: []const Inst) void {
         std.mem.copy(Inst, &self.program, program);
-        self.program_size = program.len;
+        self.program_size = @intCast(Word, program.len);
+    }
+
+    fn peek(self: *@This(), n: usize) Word {
+        return self.stack[@intCast(usize, self.stack_size) - n];
+    }
+
+    fn peekMut(self: *@This(), n: usize) *Word {
+        return &self.stack[@intCast(usize, self.stack_size) - n];
     }
 
     fn executeInst(self: *@This()) Trap!void {
-        if (self.ip >= self.program_size)
+        if (self.ip < 0 or self.ip >= self.program_size)
             return Trap.IllegalInstructionAccess;
 
-        const inst = self.program[self.ip];
+        const inst = self.program[@intCast(usize, self.ip)];
         switch (inst.kind) {
             .push => {
                 if (self.stack_size == stack_capacity)
                     return Trap.StackOverflow;
-                self.stack[self.stack_size] = inst.operand;
+                self.peekMut(0).* = inst.operand;
                 self.stack_size += 1;
                 self.ip += 1;
             },
             .plus => {
                 if (self.stack_size < 2)
                     return Trap.StackUnderflow;
-                self.stack[self.stack_size - 2] += self.stack[self.stack_size - 1];
+                self.peekMut(2).* += self.peek(1);
                 self.stack_size -= 1;
                 self.ip += 1;
             },
             .minus => {
                 if (self.stack_size < 2)
                     return Trap.StackUnderflow;
-                self.stack[self.stack_size - 2] -= self.stack[self.stack_size - 1];
+                self.peekMut(2).* -= self.peek(1);
                 self.stack_size -= 1;
                 self.ip += 1;
             },
             .mult => {
                 if (self.stack_size < 2)
                     return Trap.StackUnderflow;
-                self.stack[self.stack_size - 2] *= self.stack[self.stack_size - 1];
+                self.peekMut(2).* *= self.peek(1);
                 self.stack_size -= 1;
                 self.ip += 1;
             },
             .div => {
                 if (self.stack_size < 2)
                     return Trap.StackUnderflow;
-                if (self.stack[self.stack_size - 1] == 0)
+                if (self.peek(1) == 0)
                     return Trap.DivisionByZero;
 
-                self.stack[self.stack_size - 2] = @divTrunc(
-                    self.stack[self.stack_size - 2],
-                    self.stack[self.stack_size - 1],
-                );
+                self.peekMut(2).* = @divTrunc(self.peek(2), self.peek(1));
                 self.stack_size -= 1;
                 self.ip += 1;
             },
-            .jmp => self.ip = @intCast(usize, inst.operand),
+            .jmp => self.ip = inst.operand,
             .halt => self.halt = true,
             _ => return Trap.IllegalInstruction,
         }
