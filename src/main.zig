@@ -185,24 +185,21 @@ const Inst = struct {
 
 var bm = Bm{};
 
+const execution_limit = 100;
+
 pub fn main() !void {
     const program = [_]Inst{
-        Inst.push(420),
-        Inst.push(69),
+        Inst.push(0),
+        Inst.push(1),
         Inst.plus,
-        Inst.push(42),
-        Inst.minus,
-        Inst.push(2),
-        Inst.mult,
-        Inst.push(4),
-        Inst.div,
-        Inst.halt,
+        Inst.jmp(1),
     };
 
     bm.loadProgramFromMemory(&program);
     const stdout = std.io.getStdOut().writer();
     try bm.dumpStack(stdout);
-    while (!bm.halt) {
+    var i: usize = 0;
+    while (i < execution_limit and !bm.halt) : (i += 1) {
         bm.executeInst() catch |e| {
             std.debug.print("Trap activated: {s}\n", .{trapName(e)});
             bm.dumpStack(std.io.getStdErr().writer()) catch unreachable;
