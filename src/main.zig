@@ -230,6 +230,16 @@ const Bm = struct {
             }
         } else try writer.writeAll("  [empty]\n");
     }
+
+    fn saveProgramToFile(self: *const @This(), file_path: []const u8) !void {
+        var f = try std.fs.cwd().createFile(file_path, .{});
+        defer f.close();
+
+        const bytes = @ptrCast([*]const u8, &self.program);
+        try f.writeAll(
+            bytes[0 .. @sizeOf(Inst) * @intCast(usize, self.program_size)],
+        );
+    }
 };
 
 var bm = Bm{};
@@ -257,4 +267,6 @@ pub fn main() !void {
         };
     }
     try bm.dumpStack(stdout);
+
+    try bm.saveProgramToFile("out.bm");
 }
