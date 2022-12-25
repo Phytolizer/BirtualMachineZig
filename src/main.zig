@@ -3,11 +3,12 @@ const std = @import("std");
 const Word = i64;
 
 const Trap = error{
-    StackOverflow,
-    StackUnderflow,
     DivisionByZero,
     IllegalInstruction,
     IllegalInstructionAccess,
+    IllegalOperand,
+    StackOverflow,
+    StackUnderflow,
 };
 
 fn comptimeUncamel(comptime s: []const u8) []const u8 {
@@ -56,6 +57,53 @@ const instKindNames = blk: {
     break :blk result;
 };
 
+const Inst = struct {
+    kind: Kind,
+    operand: Word = 0,
+
+    const Kind = enum(usize) {
+        push,
+        plus,
+        minus,
+        mult,
+        div,
+        jmp,
+        jmp_if,
+        eq,
+        halt,
+        print_debug,
+        dup,
+        _,
+
+        pub fn name(self: @This()) []const u8 {
+            return instKindNames[@enumToInt(self)];
+        }
+    };
+
+    fn push(operand: Word) @This() {
+        return .{ .kind = .push, .operand = operand };
+    }
+
+    const plus = @This(){ .kind = .plus };
+    const minus = @This(){ .kind = .minus };
+    const mult = @This(){ .kind = .mult };
+    const div = @This(){ .kind = .div };
+
+    fn jmp(operand: Word) @This() {
+        return .{ .kind = .jmp, .operand = operand };
+    }
+
+    fn jmpIf(operand: Word) @This() {
+        return .{ .kind = .jmp_if, .operand = operand };
+    }
+
+    const halt = @This(){ .kind = .halt };
+    const printDebug = @This(){ .kind = .print_debug };
+    fn dup(operand: Word) Inst {
+        return .{ .kind = .dup, .operand = operand };
+    }
+};
+
 const Bm = struct {
     stack: [stack_capacity]Word = [_]Word{0} ** stack_capacity,
     stack_size: Word = 0,
@@ -79,8 +127,8 @@ const Bm = struct {
         self.program_size = @intCast(Word, program.len);
     }
 
-    fn peek(self: *@This(), n: usize) Word {
-        return self.stack[@intCast(usize, self.stack_size) - n];
+    fn peek(self: *@This(), n: Word) Word {
+        return self.stack[@intCast(usize, self.stack_size - n)];
     }
 
     fn peekMut(self: *@This(), n: usize) *Word {
@@ -132,7 +180,43 @@ const Bm = struct {
                 self.ip += 1;
             },
             .jmp => self.ip = inst.operand,
+            .eq => {
+                if (self.stack_size < 2)
+                    return Trap.StackUnderflow;
+
+                self.peekMut(2).* = @boolToInt(self.peek(2) == self.peek(1));
+                self.stack_size -= 1;
+                self.ip += 1;
+            },
+            .jmp_if => {
+                if (self.stack_size < 1)
+                    return Trap.StackUnderflow;
+
+                if (self.peek(1) != 0)
+                    self.ip = inst.operand
+                else
+                    self.ip += 1;
+
+                self.stack_size -= 1;
+            },
+            .print_debug => {
+                if (self.stack_size < 1)
+                    return Trap.StackUnderflow;
+
+                std.debug.print("{d}\n", .{self.peek(1)});
+                self.ip += 1;
+            },
             .halt => self.halt = true,
+            .dup => {
+                if (self.stack_size - inst.operand <= 0)
+                    return Trap.StackUnderflow;
+                if (inst.operand < 0)
+                    return Trap.IllegalOperand;
+
+                self.peekMut(0).* = self.peek(inst.operand + 1);
+                self.stack_size += 1;
+                self.ip += 1;
+            },
             _ => return Trap.IllegalInstruction,
         }
     }
@@ -148,41 +232,6 @@ const Bm = struct {
     }
 };
 
-const Inst = struct {
-    kind: Kind,
-    operand: Word = 0,
-
-    const Kind = enum(usize) {
-        push,
-        plus,
-        minus,
-        mult,
-        div,
-        jmp,
-        halt,
-        _,
-
-        pub fn name(self: @This()) []const u8 {
-            return instKindNames[@enumToInt(self)];
-        }
-    };
-
-    fn push(operand: Word) @This() {
-        return .{ .kind = .push, .operand = operand };
-    }
-
-    const plus = @This(){ .kind = .plus };
-    const minus = @This(){ .kind = .minus };
-    const mult = @This(){ .kind = .mult };
-    const div = @This(){ .kind = .div };
-
-    fn jmp(operand: Word) @This() {
-        return .{ .kind = .jmp, .operand = operand };
-    }
-
-    const halt = @This(){ .kind = .halt };
-};
-
 var bm = Bm{};
 
 const execution_limit = 100;
@@ -191,13 +240,14 @@ pub fn main() !void {
     const program = [_]Inst{
         Inst.push(0),
         Inst.push(1),
+        Inst.dup(0),
+        Inst.dup(2),
         Inst.plus,
-        Inst.jmp(1),
+        Inst.jmp(2),
     };
 
     bm.loadProgramFromMemory(&program);
     const stdout = std.io.getStdOut().writer();
-    try bm.dumpStack(stdout);
     var i: usize = 0;
     while (i < execution_limit and !bm.halt) : (i += 1) {
         bm.executeInst() catch |e| {
@@ -205,6 +255,6 @@ pub fn main() !void {
             bm.dumpStack(std.io.getStdErr().writer()) catch unreachable;
             std.process.exit(1);
         };
-        try bm.dumpStack(stdout);
     }
+    try bm.dumpStack(stdout);
 }
