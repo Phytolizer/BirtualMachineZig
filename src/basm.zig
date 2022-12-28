@@ -6,9 +6,7 @@ var machine = bm.Bm{};
 
 fn translateLine(line: []const u8) !?bm.Inst {
     var it = std.mem.tokenize(u8, line, &std.ascii.whitespace);
-    const inst_name = it.next() orelse
-        // TODO
-        unreachable;
+    const inst_name = it.next() orelse return null;
 
     if (inst_name[0] == '#') return null;
 
