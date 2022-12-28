@@ -24,13 +24,11 @@ fn run() !void {
 
     try machine.loadProgramFromFile(in_path);
     const stdout = std.io.getStdOut().writer();
-    var i: usize = 0;
-    while (i < bm.execution_limit and !machine.halt) : (i += 1) {
-        machine.executeInst() catch |e| {
-            std.debug.print("Trap activated: {s}\n", .{bm.trapName(e)});
-            machine.dumpStack(std.io.getStdErr().writer()) catch unreachable;
-            std.process.exit(1);
-        };
-    }
+    const err = machine.executeProgram(.{ .limit = 69 });
     try machine.dumpStack(stdout);
+
+    err catch |e| {
+        std.debug.print("ERROR: {s}\n", .{bm.trapName(e)});
+        std.process.exit(1);
+    };
 }

@@ -223,6 +223,17 @@ pub const Bm = struct {
         }
     }
 
+    pub const ExecuteArgs = struct {
+        limit: ?usize = null,
+    };
+
+    pub fn executeProgram(self: *@This(), args: ExecuteArgs) Trap!void {
+        var i: usize = 0;
+        while ((args.limit == null or i < args.limit.?) and !self.halt) : (i += 1) {
+            try self.executeInst();
+        }
+    }
+
     pub fn dumpStack(self: *const @This(), writer: anytype) !void {
         try writer.writeAll("Stack:\n");
         if (self.stack_size > 0) {
@@ -253,5 +264,3 @@ pub const Bm = struct {
         ));
     }
 };
-
-pub const execution_limit = 69;
