@@ -231,14 +231,24 @@ const Bm = struct {
         } else try writer.writeAll("  [empty]\n");
     }
 
+    fn loadProgramFromFile(self: *@This(), file_path: []const u8) !void {
+        var f = try std.fs.cwd().openFile(file_path, .{});
+        defer f.close();
+
+        const stat = try f.stat();
+        const m = stat.size;
+        self.program_size = @intCast(Word, try f.readAll(std.mem.sliceAsBytes(
+            self.program[0..@divExact(m, @sizeOf(Inst))],
+        )));
+    }
+
     fn saveProgramToFile(self: *const @This(), file_path: []const u8) !void {
         var f = try std.fs.cwd().createFile(file_path, .{});
         defer f.close();
 
-        const bytes = @ptrCast([*]const u8, &self.program);
-        try f.writeAll(
-            bytes[0 .. @sizeOf(Inst) * @intCast(usize, self.program_size)],
-        );
+        try f.writeAll(std.mem.sliceAsBytes(
+            self.program[0..@intCast(usize, self.program_size)],
+        ));
     }
 };
 
@@ -247,16 +257,16 @@ var bm = Bm{};
 const execution_limit = 100;
 
 pub fn main() !void {
-    const program = [_]Inst{
-        Inst.push(0),
-        Inst.push(1),
-        Inst.dup(0),
-        Inst.dup(2),
-        Inst.plus,
-        Inst.jmp(2),
-    };
+    // const program = [_]Inst{
+    //     Inst.push(0),
+    //     Inst.push(1),
+    //     Inst.dup(0),
+    //     Inst.dup(2),
+    //     Inst.plus,
+    //     Inst.jmp(2),
+    // };
 
-    bm.loadProgramFromMemory(&program);
+    try bm.loadProgramFromFile("out.bm");
     const stdout = std.io.getStdOut().writer();
     var i: usize = 0;
     while (i < execution_limit and !bm.halt) : (i += 1) {
