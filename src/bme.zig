@@ -3,6 +3,19 @@ const bm = @import("bm.zig");
 
 var machine = bm.Bm{};
 
+fn shift(args: *[][:0]u8) ?[:0]u8 {
+    if (args.len > 0) {
+        const result = args.*[0];
+        args.* = args.*[1..];
+        return result;
+    }
+    return null;
+}
+
+fn usage(writer: anytype, program: []const u8) void {
+    writer.print("Usage: {s} <input.bm>\n", .{program}) catch unreachable;
+}
+
 pub fn main() void {
     run() catch std.process.exit(1);
 }
@@ -11,16 +24,18 @@ fn run() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const a = gpa.allocator();
 
-    const args = try std.process.argsAlloc(a);
-    defer std.process.argsFree(a, args);
+    const args_buf = try std.process.argsAlloc(a);
+    defer std.process.argsFree(a, args_buf);
 
-    if (args.len < 2) {
-        std.debug.print("Usage: {s} <input.bm>\n", .{args[0]});
+    var args = args_buf;
+    const program = shift(&args) orelse unreachable;
+    const stderr = std.io.getStdErr().writer();
+
+    const in_path = shift(&args) orelse {
+        usage(stderr, program);
         std.debug.print("ERROR: expected input\n", .{});
         return error.Usage;
-    }
-
-    const in_path = args[1];
+    };
 
     try machine.loadProgramFromFile(in_path);
     const stdout = std.io.getStdOut().writer();
