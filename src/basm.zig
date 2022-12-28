@@ -64,10 +64,6 @@ pub fn main() void {
     run() catch std.process.exit(1);
 }
 
-fn usage(writer: anytype, program: []const u8) void {
-    writer.print("Usage: {s} <input.basm> <output.bm>\n", .{program}) catch unreachable;
-}
-
 fn run() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const a = gpa.allocator();
@@ -75,21 +71,16 @@ fn run() !void {
     const args_buf = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args_buf);
 
+    const usage = arg.genUsage("<input.basm> <output.bm>");
+
     var args = args_buf;
     const program = arg.shift(&args) orelse unreachable;
-    const stderr = std.io.getStdErr().writer();
 
-    const in_path = arg.shift(&args) orelse {
-        usage(stderr, program);
-        std.debug.print("ERROR: expected input\n", .{});
-        return error.Usage;
-    };
+    const in_path = arg.shift(&args) orelse
+        return arg.showErr(usage, program, "expected input", .{});
 
-    const out_path = arg.shift(&args) orelse {
-        usage(stderr, program);
-        std.debug.print("ERROR: expected output\n", .{});
-        return error.Usage;
-    };
+    const out_path = arg.shift(&args) orelse
+        return arg.showErr(usage, program, "expected output", .{});
 
     const source_code = try std.fs.cwd().readFileAlloc(
         a,

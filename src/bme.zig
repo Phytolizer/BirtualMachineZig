@@ -4,13 +4,6 @@ const arg = @import("arg.zig");
 
 var machine = bm.Bm{};
 
-fn usage(writer: anytype, program: []const u8) void {
-    writer.print(
-        "Usage: {s} -i <input.bm> [-l <limit>]\n",
-        .{program},
-    ) catch unreachable;
-}
-
 pub fn main() void {
     run() catch std.process.exit(1);
 }
@@ -24,41 +17,33 @@ fn run() !void {
 
     var args = args_buf;
     const program = arg.shift(&args) orelse unreachable;
-    const stderr = std.io.getStdErr().writer();
+    const usage = arg.genUsage("-i <input.bm> [-l <limit>]");
 
     var opt_in_path: ?[]const u8 = null;
     var limit: ?usize = null;
 
     while (arg.shift(&args)) |flag| {
         if (std.mem.eql(u8, flag, "-i")) {
-            opt_in_path = arg.shift(&args) orelse {
-                usage(stderr, program);
-                std.debug.print("ERROR: no argument provided for `{s}`\n", .{flag});
-                return error.Usage;
-            };
+            opt_in_path = arg.shift(&args) orelse return arg.showErr(
+                usage,
+                program,
+                "no argument provided for `{s}`",
+                .{flag},
+            );
         } else if (std.mem.eql(u8, flag, "-l")) {
-            const limit_str = arg.shift(&args) orelse {
-                usage(stderr, program);
-                std.debug.print("ERROR: no argument provided for `{s}`\n", .{flag});
-                return error.Usage;
-            };
-            limit = std.fmt.parseInt(usize, limit_str, 10) catch {
-                usage(stderr, program);
-                std.debug.print("ERROR: `{s}` argument must be a positive integer\n", .{flag});
-                return error.Usage;
-            };
-        } else {
-            usage(stderr, program);
-            std.debug.print("ERROR: unknown flag {s}\n", .{flag});
-            return error.Usage;
-        }
+            const limit_str = arg.shift(&args) orelse
+                return arg.showErr(usage, program, "no argument provided for `{s}`\n", .{flag});
+            limit = std.fmt.parseInt(usize, limit_str, 10) catch return arg.showErr(
+                usage,
+                program,
+                "`{s}` argument must be a positive integer",
+                .{flag},
+            );
+        } else return arg.showErr(usage, program, "unknown flag {s}", .{flag});
     }
 
-    const in_path = opt_in_path orelse {
-        usage(stderr, program);
-        std.debug.print("ERROR: no input provided\n", .{});
-        return error.Usage;
-    };
+    const in_path = opt_in_path orelse
+        return arg.showErr(usage, program, "no input provided", .{});
 
     try machine.loadProgramFromFile(in_path);
     const stdout = std.io.getStdOut().writer();
