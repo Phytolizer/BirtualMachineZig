@@ -4,11 +4,8 @@ pub fn build(b: *std.build.Builder) !void {
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
 
-    const Exe = enum(usize) {
-        basm = 0,
-        bme = 1,
-    };
-    const exes = [_][]const u8{ "basm", "bme" };
+    const Exe = enum(usize) { basm, bme, debasm };
+    const exes = [_][]const u8{ "basm", "bme", "debasm" };
     var build_steps: [exes.len]*std.build.LibExeObjStep = undefined;
     inline for (exes) |name, i| {
         const enum_value = std.meta.fieldNames(Exe)[i];
@@ -71,6 +68,7 @@ pub fn build(b: *std.build.Builder) !void {
             ), b.allocator);
             const bme_run_cmd = build_steps[@enumToInt(Exe.bme)].run();
             bme_run_cmd.addArg(bm_path);
+            bme_run_cmd.expected_exit_code = null;
             bme_step.dependOn(&bme_run_cmd.step);
 
             step.dependOn(basm_step);

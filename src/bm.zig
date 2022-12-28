@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const Word = i64;
+pub const Word = i64;
 
 pub const Trap = error{
     DivisionByZero,
@@ -52,12 +52,12 @@ fn toUpper(comptime s: []const u8) []const u8 {
 const instKindNames = blk: {
     var result: [std.meta.fields(Inst.Kind).len][]const u8 = undefined;
     for (std.meta.fields(Inst.Kind)) |f, i| {
-        result[i] = "INST_" ++ toUpper(f.name);
+        result[i] = f.name;
     }
     break :blk result;
 };
 
-const Inst = struct {
+pub const Inst = struct {
     kind: Kind,
     operand: Word = 0,
 
@@ -74,35 +74,34 @@ const Inst = struct {
         halt,
         print_debug,
         dup,
-        _,
 
         pub fn name(self: @This()) []const u8 {
             return instKindNames[@enumToInt(self)];
         }
     };
 
-    const nop = @This(){ .kind = .nop };
+    pub const nop = @This(){ .kind = .nop };
 
-    fn push(operand: Word) @This() {
+    pub fn push(operand: Word) @This() {
         return .{ .kind = .push, .operand = operand };
     }
 
-    const plus = @This(){ .kind = .plus };
-    const minus = @This(){ .kind = .minus };
-    const mult = @This(){ .kind = .mult };
-    const div = @This(){ .kind = .div };
+    pub const plus = @This(){ .kind = .plus };
+    pub const minus = @This(){ .kind = .minus };
+    pub const mult = @This(){ .kind = .mult };
+    pub const div = @This(){ .kind = .div };
 
-    fn jmp(operand: Word) @This() {
+    pub fn jmp(operand: Word) @This() {
         return .{ .kind = .jmp, .operand = operand };
     }
 
-    fn jmpIf(operand: Word) @This() {
+    pub fn jmpIf(operand: Word) @This() {
         return .{ .kind = .jmp_if, .operand = operand };
     }
 
-    const halt = @This(){ .kind = .halt };
-    const printDebug = @This(){ .kind = .print_debug };
-    fn dup(operand: Word) Inst {
+    pub const halt = @This(){ .kind = .halt };
+    pub const printDebug = @This(){ .kind = .print_debug };
+    pub fn dup(operand: Word) Inst {
         return .{ .kind = .dup, .operand = operand };
     }
 };
@@ -221,7 +220,6 @@ pub const Bm = struct {
                 self.stack_size += 1;
                 self.ip += 1;
             },
-            _ => return Trap.IllegalInstruction,
         }
     }
 
@@ -257,58 +255,3 @@ pub const Bm = struct {
 };
 
 pub const execution_limit = 100;
-
-fn translateLine(line: []const u8) !Inst {
-    var it = std.mem.tokenize(u8, line, &std.ascii.whitespace);
-    const inst_name = it.next() orelse
-        // TODO
-        unreachable;
-
-    if (std.mem.eql(u8, inst_name, "push")) {
-        const operand_str = it.next() orelse
-            // TODO
-            unreachable;
-        const operand = std.fmt.parseInt(Word, operand_str, 10) catch |e| {
-            std.debug.print("ERROR: `{s}` is not a number\n", .{operand_str});
-            return e;
-        };
-        return Inst.push(operand);
-    }
-    if (std.mem.eql(u8, inst_name, "dup")) {
-        const operand_str = it.next() orelse
-            // TODO
-            unreachable;
-        const operand = std.fmt.parseInt(Word, operand_str, 10) catch |e| {
-            std.debug.print("ERROR: `{s}` is not a number\n", .{operand_str});
-            return e;
-        };
-        return Inst.dup(operand);
-    }
-    if (std.mem.eql(u8, inst_name, "jmp")) {
-        const operand_str = it.next() orelse
-            // TODO
-            unreachable;
-        const operand = std.fmt.parseInt(Word, operand_str, 10) catch |e| {
-            std.debug.print("ERROR: `{s}` is not a number\n", .{operand_str});
-            return e;
-        };
-        return Inst.jmp(operand);
-    }
-    if (std.mem.eql(u8, inst_name, "plus")) {
-        return Inst.plus;
-    }
-    std.debug.print(
-        "ERROR: `{s}` is not a valid instruction name\n",
-        .{inst_name},
-    );
-    return error.Parse;
-}
-
-pub fn translateAsm(source: []const u8, program: []Inst) !Word {
-    var source_iter = std.mem.tokenize(u8, source, "\r\n");
-    var program_size: usize = 0;
-    while (source_iter.next()) |line| : (program_size += 1) {
-        program[program_size] = try translateLine(line);
-    }
-    return @intCast(Word, program_size);
-}
