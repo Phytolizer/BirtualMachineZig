@@ -30,16 +30,5 @@ fn run() !void {
     );
     defer a.free(source_code);
     machine.program_size = try bm.translateAsm(source_code, &machine.program);
-    const stdout = std.io.getStdOut().writer();
-    var i: usize = 0;
-    while (i < bm.execution_limit and !machine.halt) : (i += 1) {
-        machine.executeInst() catch |e| {
-            std.debug.print("Trap activated: {s}\n", .{bm.trapName(e)});
-            machine.dumpStack(std.io.getStdErr().writer()) catch unreachable;
-            std.process.exit(1);
-        };
-    }
-    try machine.dumpStack(stdout);
-
     try machine.saveProgramToFile(out_path);
 }
