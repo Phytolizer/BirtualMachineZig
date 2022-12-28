@@ -327,7 +327,8 @@ fn run() !void {
     defer std.process.argsFree(a, args);
 
     if (args.len < 3) {
-        std.debug.print("Usage: {s} <input.basm> <output.bm>", .{args[0]});
+        std.debug.print("Usage: {s} <input.basm> <output.bm>\n", .{args[0]});
+        std.debug.print("ERROR: expected input and output\n", .{});
         return error.Usage;
     }
 
