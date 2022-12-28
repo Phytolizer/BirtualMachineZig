@@ -254,4 +254,4 @@ pub const Bm = struct {
     }
 };
 
-pub const execution_limit = 100;
+pub const execution_limit = 69;
