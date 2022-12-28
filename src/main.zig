@@ -237,9 +237,9 @@ const Bm = struct {
 
         const stat = try f.stat();
         const m = stat.size;
-        self.program_size = @intCast(Word, try f.readAll(std.mem.sliceAsBytes(
-            self.program[0..@divExact(m, @sizeOf(Inst))],
-        )));
+        const n_insts = @divExact(m, @sizeOf(Inst));
+        _ = try f.readAll(std.mem.sliceAsBytes(self.program[0..n_insts]));
+        self.program_size = @intCast(Word, n_insts);
     }
 
     fn saveProgramToFile(self: *const @This(), file_path: []const u8) !void {
@@ -266,7 +266,8 @@ pub fn main() !void {
     //     Inst.jmp(2),
     // };
 
-    try bm.loadProgramFromFile("out.bm");
+    try bm.loadProgramFromFile("fib.bm");
+    // bm.loadProgramFromMemory(&program);
     const stdout = std.io.getStdOut().writer();
     var i: usize = 0;
     while (i < execution_limit and !bm.halt) : (i += 1) {
@@ -278,5 +279,5 @@ pub fn main() !void {
     }
     try bm.dumpStack(stdout);
 
-    try bm.saveProgramToFile("out.bm");
+    try bm.saveProgramToFile("fib.bm");
 }
