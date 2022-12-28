@@ -4,11 +4,15 @@ const arg = @import("arg.zig");
 
 var machine = bm.Bm{};
 
-fn translateLine(line: []const u8) !bm.Inst {
+fn translateLine(line: []const u8) !?bm.Inst {
     var it = std.mem.tokenize(u8, line, &std.ascii.whitespace);
     const inst_name = it.next() orelse
         // TODO
         unreachable;
+
+    if (inst_name[0] == '#') return null;
+
+    var result: bm.Inst = undefined;
 
     if (std.mem.eql(u8, inst_name, "push")) {
         const operand_str = it.next() orelse
@@ -18,9 +22,8 @@ fn translateLine(line: []const u8) !bm.Inst {
             std.debug.print("ERROR: `{s}` is not a number\n", .{operand_str});
             return e;
         };
-        return bm.Inst.push(operand);
-    }
-    if (std.mem.eql(u8, inst_name, "dup")) {
+        result = bm.Inst.push(operand);
+    } else if (std.mem.eql(u8, inst_name, "dup")) {
         const operand_str = it.next() orelse
             // TODO
             unreachable;
@@ -28,9 +31,8 @@ fn translateLine(line: []const u8) !bm.Inst {
             std.debug.print("ERROR: `{s}` is not a number\n", .{operand_str});
             return e;
         };
-        return bm.Inst.dup(operand);
-    }
-    if (std.mem.eql(u8, inst_name, "jmp")) {
+        result = bm.Inst.dup(operand);
+    } else if (std.mem.eql(u8, inst_name, "jmp")) {
         const operand_str = it.next() orelse
             // TODO
             unreachable;
@@ -38,24 +40,40 @@ fn translateLine(line: []const u8) !bm.Inst {
             std.debug.print("ERROR: `{s}` is not a number\n", .{operand_str});
             return e;
         };
-        return bm.Inst.jmp(operand);
+        result = bm.Inst.jmp(operand);
+    } else if (std.mem.eql(u8, inst_name, "plus")) {
+        result = bm.Inst.plus;
+    } else if (std.mem.eql(u8, inst_name, "halt")) {
+        result = bm.Inst.halt;
+    } else {
+        std.debug.print(
+            "ERROR: `{s}` is not a valid instruction name\n",
+            .{inst_name},
+        );
+        return error.Parse;
     }
-    if (std.mem.eql(u8, inst_name, "plus"))
-        return bm.Inst.plus;
-    if (std.mem.eql(u8, inst_name, "halt"))
-        return bm.Inst.halt;
-    std.debug.print(
-        "ERROR: `{s}` is not a valid instruction name\n",
-        .{inst_name},
-    );
-    return error.Parse;
+
+    extraOperand: {
+        if (it.next()) |extra| {
+            if (extra[0] == '#')
+                break :extraOperand;
+            std.debug.print(
+                "ERROR: too many arguments for `{s}`\n",
+                .{inst_name},
+            );
+            return error.Parse;
+        }
+    }
+
+    return result;
 }
 
 fn translateAsm(source: []const u8, program: []bm.Inst) !bm.Word {
     var source_iter = std.mem.tokenize(u8, source, "\r\n");
     var program_size: usize = 0;
-    while (source_iter.next()) |line| : (program_size += 1) {
-        program[program_size] = try translateLine(line);
+    while (source_iter.next()) |line| {
+        program[program_size] = try translateLine(line) orelse continue;
+        program_size += 1;
     }
     return @intCast(bm.Word, program_size);
 }
