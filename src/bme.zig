@@ -1,16 +1,8 @@
 const std = @import("std");
 const bm = @import("bm.zig");
+const arg = @import("arg.zig");
 
 var machine = bm.Bm{};
-
-fn shift(args: *[][:0]u8) ?[:0]u8 {
-    if (args.len > 0) {
-        const result = args.*[0];
-        args.* = args.*[1..];
-        return result;
-    }
-    return null;
-}
 
 fn usage(writer: anytype, program: []const u8) void {
     writer.print("Usage: {s} <input.bm>\n", .{program}) catch unreachable;
@@ -28,10 +20,10 @@ fn run() !void {
     defer std.process.argsFree(a, args_buf);
 
     var args = args_buf;
-    const program = shift(&args) orelse unreachable;
+    const program = arg.shift(&args) orelse unreachable;
     const stderr = std.io.getStdErr().writer();
 
-    const in_path = shift(&args) orelse {
+    const in_path = arg.shift(&args) orelse {
         usage(stderr, program);
         std.debug.print("ERROR: expected input\n", .{});
         return error.Usage;
