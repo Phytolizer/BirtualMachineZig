@@ -66,6 +66,7 @@ pub fn main() void {
 
 fn run() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
     const a = gpa.allocator();
 
     const args_buf = try std.process.argsAlloc(a);
