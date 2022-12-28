@@ -62,6 +62,7 @@ const Inst = struct {
     operand: Word = 0,
 
     const Kind = enum(usize) {
+        nop,
         push,
         plus,
         minus,
@@ -79,6 +80,8 @@ const Inst = struct {
             return instKindNames[@enumToInt(self)];
         }
     };
+
+    const nop = @This(){ .kind = .nop };
 
     fn push(operand: Word) @This() {
         return .{ .kind = .push, .operand = operand };
@@ -141,6 +144,7 @@ const Bm = struct {
 
         const inst = self.program[@intCast(usize, self.ip)];
         switch (inst.kind) {
+            .nop => self.ip += 1,
             .push => {
                 if (self.stack_size == stack_capacity)
                     return Trap.StackOverflow;
@@ -256,18 +260,87 @@ var bm = Bm{};
 
 const execution_limit = 100;
 
-pub fn main() !void {
-    // const program = [_]Inst{
-    //     Inst.push(0),
-    //     Inst.push(1),
-    //     Inst.dup(0),
-    //     Inst.dup(2),
-    //     Inst.plus,
-    //     Inst.jmp(2),
-    // };
+fn translateLine(line: []const u8) !Inst {
+    var it = std.mem.tokenize(u8, line, &std.ascii.whitespace);
+    const inst_name = it.next() orelse
+        // TODO
+        unreachable;
 
-    try bm.loadProgramFromFile("fib.bm");
-    // bm.loadProgramFromMemory(&program);
+    if (std.mem.eql(u8, inst_name, "push")) {
+        const operand_str = it.next() orelse
+            // TODO
+            unreachable;
+        const operand = std.fmt.parseInt(Word, operand_str, 10) catch |e| {
+            std.debug.print("ERROR: `{s}` is not a number\n", .{operand_str});
+            return e;
+        };
+        return Inst.push(operand);
+    }
+    if (std.mem.eql(u8, inst_name, "dup")) {
+        const operand_str = it.next() orelse
+            // TODO
+            unreachable;
+        const operand = std.fmt.parseInt(Word, operand_str, 10) catch |e| {
+            std.debug.print("ERROR: `{s}` is not a number\n", .{operand_str});
+            return e;
+        };
+        return Inst.dup(operand);
+    }
+    if (std.mem.eql(u8, inst_name, "jmp")) {
+        const operand_str = it.next() orelse
+            // TODO
+            unreachable;
+        const operand = std.fmt.parseInt(Word, operand_str, 10) catch |e| {
+            std.debug.print("ERROR: `{s}` is not a number\n", .{operand_str});
+            return e;
+        };
+        return Inst.jmp(operand);
+    }
+    if (std.mem.eql(u8, inst_name, "plus")) {
+        return Inst.plus;
+    }
+    std.debug.print(
+        "ERROR: `{s}` is not a valid instruction name\n",
+        .{inst_name},
+    );
+    return error.Parse;
+}
+
+fn translateAsm(source: []const u8, program: []Inst) !Word {
+    var source_iter = std.mem.tokenize(u8, source, "\r\n");
+    var program_size: usize = 0;
+    while (source_iter.next()) |line| : (program_size += 1) {
+        program[program_size] = try translateLine(line);
+    }
+    return @intCast(Word, program_size);
+}
+
+pub fn main() void {
+    run() catch std.process.exit(1);
+}
+
+fn run() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const a = gpa.allocator();
+
+    const args = try std.process.argsAlloc(a);
+    defer std.process.argsFree(a, args);
+
+    if (args.len < 3) {
+        std.debug.print("Usage: {s} <input.basm> <output.bm>", .{args[0]});
+        return error.Usage;
+    }
+
+    const in_path = args[1];
+    const out_path = args[2];
+
+    const source_code = try std.fs.cwd().readFileAlloc(
+        a,
+        in_path,
+        std.math.maxInt(usize),
+    );
+    defer a.free(source_code);
+    bm.program_size = try translateAsm(source_code, &bm.program);
     const stdout = std.io.getStdOut().writer();
     var i: usize = 0;
     while (i < execution_limit and !bm.halt) : (i += 1) {
@@ -279,5 +352,5 @@ pub fn main() !void {
     }
     try bm.dumpStack(stdout);
 
-    try bm.saveProgramToFile("fib.bm");
+    try bm.saveProgramToFile(out_path);
 }
