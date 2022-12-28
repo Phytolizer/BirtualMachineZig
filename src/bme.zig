@@ -22,6 +22,7 @@ fn run() !void {
 
     var opt_in_path: ?[]const u8 = null;
     var limit: ?usize = null;
+    const stdout = std.io.getStdOut().writer();
 
     while (arg.shift(&args)) |flag| {
         if (std.mem.eql(u8, flag, "-i")) {
@@ -40,6 +41,9 @@ fn run() !void {
                 "`{s}` argument must be a positive integer",
                 .{flag},
             );
+        } else if (std.mem.eql(u8, flag, "-h")) {
+            usage(stdout, program);
+            return;
         } else return arg.showErr(usage, program, "unknown flag {s}", .{flag});
     }
 
@@ -47,7 +51,6 @@ fn run() !void {
         return arg.showErr(usage, program, "no input provided", .{});
 
     try machine.loadProgramFromFile(in_path);
-    const stdout = std.io.getStdOut().writer();
     const err = machine.executeProgram(.{ .limit = limit });
     try machine.dumpStack(stdout);
 
