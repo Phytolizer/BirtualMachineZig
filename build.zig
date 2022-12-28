@@ -67,7 +67,7 @@ pub fn build(b: *std.build.Builder) !void {
                 .{std.fs.path.stem(entry.name)},
             ), b.allocator);
             const bme_run_cmd = build_steps[@enumToInt(Exe.bme)].run();
-            bme_run_cmd.addArg(bm_path);
+            bme_run_cmd.addArgs(&.{ "-i", bm_path, "-l", "69" });
             bme_run_cmd.expected_exit_code = null;
             bme_step.dependOn(&bme_run_cmd.step);
 
