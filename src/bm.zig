@@ -1,6 +1,17 @@
 const std = @import("std");
 
-pub const Word = i64;
+const InstAddr = u64;
+
+pub const Word = packed union {
+    as_u64: u64,
+    as_i64: i64,
+    as_f64: f64,
+    as_ptr: ?*anyopaque,
+};
+
+comptime {
+    std.debug.assert(@bitSizeOf(Word) == 64);
+}
 
 pub const limits = struct {
     pub const labels = 1024;
@@ -11,11 +22,11 @@ pub const limits = struct {
 
 pub const Label = struct {
     name: []const u8,
-    address: Word,
+    address: InstAddr,
 };
 
 pub const DeferredOperand = struct {
-    address: Word,
+    address: InstAddr,
     label_name: []const u8,
 };
 
@@ -34,12 +45,16 @@ pub const Basm = struct {
         return null;
     }
 
-    pub fn push(self: *@This(), name: []const u8, addr: Word) void {
+    pub fn push(self: *@This(), name: []const u8, addr: InstAddr) void {
         self.labels[self.labels_size] = .{ .name = name, .address = addr };
         self.labels_size += 1;
     }
 
-    pub fn pushDeferredOperand(self: *@This(), addr: Word, label: []const u8) void {
+    pub fn pushDeferredOperand(
+        self: *@This(),
+        addr: InstAddr,
+        label: []const u8,
+    ) void {
         self.deferred_operands[self.deferred_operands_size] = .{
             .address = addr,
             .label_name = label,
@@ -105,7 +120,7 @@ const instKindNames = blk: {
 
 pub const Inst = struct {
     kind: Kind,
-    operand: Word = 0,
+    operand: Word = .{ .as_u64 = 0 },
 
     const Kind = enum(usize) {
         nop,
@@ -153,12 +168,12 @@ pub const Inst = struct {
 };
 
 pub const Bm = struct {
-    stack: [limits.stack]Word = [_]Word{0} ** limits.stack,
-    stack_size: Word = 0,
+    stack: [limits.stack]Word = undefined,
+    stack_size: u64 = 0,
 
     program: [limits.program]Inst = undefined,
-    program_size: Word = 0,
-    ip: Word = 0,
+    program_size: u64 = 0,
+    ip: InstAddr = 0,
 
     halt: bool = false,
 
@@ -172,7 +187,7 @@ pub const Bm = struct {
         self.program_size = @intCast(Word, program.len);
     }
 
-    fn peek(self: *@This(), n: Word) Word {
+    fn peek(self: *@This(), n: usize) Word {
         return self.stack[@intCast(usize, self.stack_size - n)];
     }
 
@@ -181,7 +196,7 @@ pub const Bm = struct {
     }
 
     pub fn executeInst(self: *@This()) Trap!void {
-        if (self.ip < 0 or self.ip >= self.program_size)
+        if (self.ip >= self.program_size)
             return Trap.IllegalInstructionAccess;
 
         const inst = self.program[@intCast(usize, self.ip)];
@@ -197,40 +212,45 @@ pub const Bm = struct {
             .plus => {
                 if (self.stack_size < 2)
                     return Trap.StackUnderflow;
-                self.peekMut(2).* += self.peek(1);
+                self.peekMut(2).as_u64 += self.peek(1).as_u64;
                 self.stack_size -= 1;
                 self.ip += 1;
             },
             .minus => {
                 if (self.stack_size < 2)
                     return Trap.StackUnderflow;
-                self.peekMut(2).* -= self.peek(1);
+                self.peekMut(2).as_u64 -= self.peek(1).as_u64;
                 self.stack_size -= 1;
                 self.ip += 1;
             },
             .mult => {
                 if (self.stack_size < 2)
                     return Trap.StackUnderflow;
-                self.peekMut(2).* *= self.peek(1);
+                self.peekMut(2).as_u64 *= self.peek(1).as_u64;
                 self.stack_size -= 1;
                 self.ip += 1;
             },
             .div => {
                 if (self.stack_size < 2)
                     return Trap.StackUnderflow;
-                if (self.peek(1) == 0)
+                if (self.peek(1).as_u64 == 0)
                     return Trap.DivisionByZero;
 
-                self.peekMut(2).* = @divTrunc(self.peek(2), self.peek(1));
+                self.peekMut(2).as_u64 = @divTrunc(
+                    self.peek(2).as_u64,
+                    self.peek(1).as_u64,
+                );
                 self.stack_size -= 1;
                 self.ip += 1;
             },
-            .jmp => self.ip = inst.operand,
+            .jmp => self.ip = inst.operand.as_u64,
             .eq => {
                 if (self.stack_size < 2)
                     return Trap.StackUnderflow;
 
-                self.peekMut(2).* = @boolToInt(self.peek(2) == self.peek(1));
+                self.peekMut(2).as_u64 = @boolToInt(
+                    self.peek(2).as_u64 == self.peek(1).as_u64,
+                );
                 self.stack_size -= 1;
                 self.ip += 1;
             },
@@ -238,8 +258,8 @@ pub const Bm = struct {
                 if (self.stack_size < 1)
                     return Trap.StackUnderflow;
 
-                if (self.peek(1) != 0)
-                    self.ip = inst.operand
+                if (self.peek(1).as_u64 != 0)
+                    self.ip = inst.operand.as_u64
                 else
                     self.ip += 1;
 
@@ -249,17 +269,15 @@ pub const Bm = struct {
                 if (self.stack_size < 1)
                     return Trap.StackUnderflow;
 
-                std.debug.print("{d}\n", .{self.peek(1)});
+                std.debug.print("{d}\n", .{self.peek(1).as_u64});
                 self.ip += 1;
             },
             .halt => self.halt = true,
             .dup => {
-                if (self.stack_size - inst.operand <= 0)
+                if (self.stack_size <= inst.operand.as_u64)
                     return Trap.StackUnderflow;
-                if (inst.operand < 0)
-                    return Trap.IllegalOperand;
 
-                self.peekMut(0).* = self.peek(inst.operand + 1);
+                self.peekMut(0).* = self.peek(inst.operand.as_u64 + 1);
                 self.stack_size += 1;
                 self.ip += 1;
             },
@@ -282,7 +300,15 @@ pub const Bm = struct {
         if (self.stack_size > 0) {
             var i: usize = 0;
             while (i < self.stack_size) : (i += 1) {
-                try writer.print("  {d}\n", .{self.stack[i]});
+                try writer.print(
+                    "  u64: {d}, i64: {d}, f64: {d:.6}, ptr: 0x{X:0>16}\n",
+                    .{
+                        self.stack[i].as_u64,
+                        self.stack[i].as_i64,
+                        self.stack[i].as_f64,
+                        @ptrToInt(self.stack[i].as_ptr),
+                    },
+                );
             }
         } else try writer.writeAll("  [empty]\n");
     }
@@ -295,7 +321,7 @@ pub const Bm = struct {
         const m = stat.size;
         const n_insts = @divExact(m, @sizeOf(Inst));
         _ = try f.readAll(std.mem.sliceAsBytes(self.program[0..n_insts]));
-        self.program_size = @intCast(Word, n_insts);
+        self.program_size = @intCast(InstAddr, n_insts);
     }
 
     pub fn saveProgramToFile(self: *const @This(), file_path: []const u8) !void {

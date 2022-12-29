@@ -49,7 +49,7 @@ fn run() !void {
             .dup,
             .jmp,
             .jmp_if,
-            => out("{s} {d}", .{ inst.kind.name(), inst.operand }),
+            => out("{s} {d}", .{ inst.kind.name(), inst.operand.as_i64 }),
         }
     }
 }

@@ -35,9 +35,9 @@ fn translateLine(
         }
     }.needsOperand;
     const needsNumberOperand = struct {
-        fn f(token_it: *std.mem.TokenIterator(u8), inst: []const u8) !bm.Word {
+        fn f(token_it: *std.mem.TokenIterator(u8), inst: []const u8) !i64 {
             const s = try needsOperand(token_it, inst);
-            return std.fmt.parseInt(bm.Word, s, 10) catch
+            return std.fmt.parseInt(i64, s, 10) catch
                 return parseErr("`{s}` is not a number", .{s});
         }
     }.f;
@@ -75,17 +75,17 @@ fn translateLine(
 
     if (std.mem.eql(u8, inst_name, "jmp")) {
         const operand = try needsOperand(&it, inst_name);
-        if (std.fmt.parseInt(bm.Word, operand, 10)) |operand_num| {
-            result = bm.Inst.jmp(operand_num);
+        if (std.fmt.parseInt(u64, operand, 10)) |operand_num| {
+            result = bm.Inst.jmp(.{ .as_u64 = operand_num });
         } else |_| {
             basm.pushDeferredOperand(machine.program_size, operand);
-            result = bm.Inst.jmp(0);
+            result = bm.Inst.jmp(.{ .as_u64 = 0 });
         }
     } else findDef: {
         for (defs1) |d1| {
             if (std.mem.eql(u8, d1.name, inst_name)) {
                 const operand = try needsNumberOperand(&it, inst_name);
-                result = d1.val(operand);
+                result = d1.val(.{ .as_i64 = operand });
                 break :findDef;
             }
         }
@@ -119,7 +119,7 @@ fn translateAsm(source: []const u8, machine: *bm.Bm, basm: *bm.Basm) !void {
 
     for (basm.deferred_operands[0..basm.deferred_operands_size]) |do| {
         if (basm.findLabel(do.label_name)) |label| {
-            machine.program[@intCast(usize, do.address)].operand = label.address;
+            machine.program[@intCast(usize, do.address)].operand.as_u64 = label.address;
         } else {
             io.showErr("unknown jump to `{s}`", .{do.label_name});
             return error.UnknownLabel;
