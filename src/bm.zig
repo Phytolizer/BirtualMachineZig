@@ -19,7 +19,7 @@ pub const DeferredOperand = struct {
     label_name: []const u8,
 };
 
-pub const LabelTable = struct {
+pub const Basm = struct {
     labels: [limits.labels]Label = undefined,
     labels_size: usize = 0,
     deferred_operands: [limits.deferred_operands]DeferredOperand = undefined,
@@ -309,4 +309,4 @@ pub const Bm = struct {
 };
 
 pub var machine = Bm{};
-pub var lt = LabelTable{};
+pub var basm = Basm{};

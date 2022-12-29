@@ -6,7 +6,7 @@ const io = @import("io.zig");
 
 fn translateLine(
     machine: *const bm.Bm,
-    lt: *bm.LabelTable,
+    basm: *bm.Basm,
     line: []const u8,
 ) !?bm.Inst {
     var it = std.mem.tokenize(u8, line, &std.ascii.whitespace);
@@ -15,7 +15,7 @@ fn translateLine(
 
     if (str.charBeforeEnd(inst_name, 1) == ':') {
         // label
-        lt.push(str.beforeEnd(inst_name, 1), machine.program_size);
+        basm.push(str.beforeEnd(inst_name, 1), machine.program_size);
         inst_name = it.next() orelse return null;
     }
 
@@ -53,7 +53,7 @@ fn translateLine(
         if (std.fmt.parseInt(bm.Word, operand, 10)) |operand_num| {
             result = bm.Inst.jmp(operand_num);
         } else |_| {
-            lt.pushDeferredOperand(machine.program_size, operand);
+            basm.pushDeferredOperand(machine.program_size, operand);
             result = bm.Inst.jmp(0);
         }
     } else if (std.mem.eql(u8, inst_name, "plus")) {
@@ -75,15 +75,15 @@ fn translateLine(
     return result;
 }
 
-fn translateAsm(source: []const u8, machine: *bm.Bm, lt: *bm.LabelTable) !void {
+fn translateAsm(source: []const u8, machine: *bm.Bm, basm: *bm.Basm) !void {
     machine.program_size = 0;
     var source_iter = std.mem.tokenize(u8, source, "\r\n");
     while (source_iter.next()) |line| {
-        machine.pushInst(try translateLine(machine, lt, line) orelse continue);
+        machine.pushInst(try translateLine(machine, basm, line) orelse continue);
     }
 
-    for (lt.deferred_operands[0..lt.deferred_operands_size]) |do| {
-        if (lt.findLabel(do.label_name)) |label| {
+    for (basm.deferred_operands[0..basm.deferred_operands_size]) |do| {
+        if (basm.findLabel(do.label_name)) |label| {
             machine.program[@intCast(usize, do.address)].operand = label.address;
         } else {
             io.showErr("unknown jump to `{s}`", .{do.label_name});
@@ -121,6 +121,6 @@ fn run() !void {
         std.math.maxInt(usize),
     );
     defer a.free(source_code);
-    try translateAsm(source_code, &bm.machine, &bm.lt);
+    try translateAsm(source_code, &bm.machine, &bm.basm);
     try bm.machine.saveProgramToFile(out_path);
 }
