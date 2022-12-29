@@ -1,6 +1,7 @@
 const std = @import("std");
 const bm = @import("bm.zig");
 const arg = @import("arg.zig");
+const io = @import("io.zig");
 
 var machine = bm.Bm{};
 
@@ -55,7 +56,7 @@ fn run() !void {
     try machine.dumpStack(stdout);
 
     err catch |e| {
-        std.debug.print("ERROR: {s}\n", .{bm.trapName(e)});
-        std.process.exit(1);
+        io.showErr("{s}", .{bm.trapName(e)});
+        return e;
     };
 }

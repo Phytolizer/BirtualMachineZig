@@ -1,5 +1,7 @@
 const std = @import("std");
 const bm = @import("bm.zig");
+const arg = @import("arg.zig");
+const io = @import("io.zig");
 
 var machine = bm.Bm{};
 
@@ -11,6 +13,10 @@ fn out(comptime fmt: []const u8, args: anytype) void {
     std.io.getStdOut().writer().print(fmt ++ "\n", args) catch unreachable;
 }
 
+fn usage(_: anytype, program: []const u8) void {
+    io.errLine("Usage: {s} <input.bm>", .{program});
+}
+
 fn run() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const a = gpa.allocator();
@@ -18,10 +24,10 @@ fn run() !void {
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
 
+    const program = args[0];
+
     if (args.len < 2) {
-        std.debug.print("Usage: {s} <input.bm>\n", .{args[0]});
-        std.debug.print("ERROR: expected input\n", .{});
-        return error.Usage;
+        return arg.showErr(usage, program, "ERROR: expected input\n", .{});
     }
 
     const in_path = args[1];

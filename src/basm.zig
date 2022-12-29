@@ -2,6 +2,7 @@ const std = @import("std");
 const bm = @import("bm.zig");
 const arg = @import("arg.zig");
 const str = @import("str.zig");
+const io = @import("io.zig");
 
 fn translateLine(
     machine: *const bm.Bm,
@@ -20,55 +21,50 @@ fn translateLine(
 
     var result: bm.Inst = undefined;
 
+    const parseErr = struct {
+        fn f(comptime fmt: []const u8, args: anytype) error{Parse} {
+            io.showErr(fmt, args);
+            return error.Parse;
+        }
+    }.f;
+
     const needsOperand = struct {
         fn needsOperand(token_it: *std.mem.TokenIterator(u8), inst: []const u8) ![]const u8 {
-            return token_it.next() orelse {
-                std.debug.print("ERROR: `{s}` requires an argument\n", .{inst});
-                return error.Parse;
-            };
+            return token_it.next() orelse
+                return parseErr("`{s}` requires an argument", .{inst});
         }
     }.needsOperand;
+    const needsNumberOperand = struct {
+        fn f(token_it: *std.mem.TokenIterator(u8), inst: []const u8) !bm.Word {
+            const s = try needsOperand(token_it, inst);
+            return std.fmt.parseInt(bm.Word, s, 10) catch
+                return parseErr("`{s}` is not a number", .{s});
+        }
+    }.f;
 
     if (std.mem.eql(u8, inst_name, "push")) {
-        const operand_str = try needsOperand(&it, inst_name);
-        const operand = std.fmt.parseInt(bm.Word, operand_str, 10) catch |e| {
-            std.debug.print("ERROR: `{s}` is not a number\n", .{operand_str});
-            return e;
-        };
+        const operand = try needsNumberOperand(&it, inst_name);
         result = bm.Inst.push(operand);
     } else if (std.mem.eql(u8, inst_name, "dup")) {
-        const operand_str = try needsOperand(&it, inst_name);
-        const operand = std.fmt.parseInt(bm.Word, operand_str, 10) catch |e| {
-            std.debug.print("ERROR: `{s}` is not a number\n", .{operand_str});
-            return e;
-        };
+        const operand = try needsNumberOperand(&it, inst_name);
         result = bm.Inst.dup(operand);
     } else if (std.mem.eql(u8, inst_name, "jmp")) {
-        const operand_str = try needsOperand(&it, inst_name);
-        const operand = 0;
-        lt.pushDeferredOperand(machine.program_size, operand_str);
-        result = bm.Inst.jmp(operand);
+        const operand = try needsOperand(&it, inst_name);
+        lt.pushDeferredOperand(machine.program_size, operand);
+        result = bm.Inst.jmp(0);
     } else if (std.mem.eql(u8, inst_name, "plus")) {
         result = bm.Inst.plus;
     } else if (std.mem.eql(u8, inst_name, "halt")) {
         result = bm.Inst.halt;
     } else {
-        std.debug.print(
-            "ERROR: `{s}` is not a valid instruction name\n",
-            .{inst_name},
-        );
-        return error.Parse;
+        return parseErr("`{s}` is not a valid instruction name", .{inst_name});
     }
 
     extraOperand: {
         if (it.next()) |extra| {
             if (extra[0] == '#')
                 break :extraOperand;
-            std.debug.print(
-                "ERROR: too many arguments for `{s}`\n",
-                .{inst_name},
-            );
-            return error.Parse;
+            return parseErr("too many arguments for `{s}`", .{inst_name});
         }
     }
 
@@ -86,7 +82,7 @@ fn translateAsm(source: []const u8, machine: *bm.Bm, lt: *bm.LabelTable) !void {
         if (lt.findLabel(do.label_name)) |label| {
             machine.program[@intCast(usize, do.address)].operand = label.address;
         } else {
-            std.debug.print("ERROR: unknown jump to `{s}`\n", .{do.label_name});
+            io.showErr("unknown jump to `{s}`", .{do.label_name});
             return error.UnknownLabel;
         }
     }
