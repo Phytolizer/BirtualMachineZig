@@ -50,8 +50,12 @@ fn translateLine(
         result = bm.Inst.dup(operand);
     } else if (std.mem.eql(u8, inst_name, "jmp")) {
         const operand = try needsOperand(&it, inst_name);
-        lt.pushDeferredOperand(machine.program_size, operand);
-        result = bm.Inst.jmp(0);
+        if (std.fmt.parseInt(bm.Word, operand, 10)) |operand_num| {
+            result = bm.Inst.jmp(operand_num);
+        } else |_| {
+            lt.pushDeferredOperand(machine.program_size, operand);
+            result = bm.Inst.jmp(0);
+        }
     } else if (std.mem.eql(u8, inst_name, "plus")) {
         result = bm.Inst.plus;
     } else if (std.mem.eql(u8, inst_name, "halt")) {
