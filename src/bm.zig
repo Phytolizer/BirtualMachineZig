@@ -2,6 +2,52 @@ const std = @import("std");
 
 pub const Word = i64;
 
+pub const limits = struct {
+    pub const labels = 1024;
+    pub const deferred_operands = 1024;
+    pub const stack = 1024;
+    pub const program = 1024;
+};
+
+pub const Label = struct {
+    name: []const u8,
+    address: Word,
+};
+
+pub const DeferredOperand = struct {
+    address: Word,
+    label_name: []const u8,
+};
+
+pub const LabelTable = struct {
+    labels: [limits.labels]Label = undefined,
+    labels_size: usize = 0,
+    deferred_operands: [limits.deferred_operands]DeferredOperand = undefined,
+    deferred_operands_size: usize = 0,
+
+    pub fn findLabel(self: *const @This(), name: []const u8) ?*const Label {
+        for (self.labels[0..self.labels_size]) |*label| {
+            if (std.mem.eql(u8, label.name, name)) {
+                return label;
+            }
+        }
+        return null;
+    }
+
+    pub fn push(self: *@This(), name: []const u8, addr: Word) void {
+        self.labels[self.labels_size] = .{ .name = name, .address = addr };
+        self.labels_size += 1;
+    }
+
+    pub fn pushDeferredOperand(self: *@This(), addr: Word, label: []const u8) void {
+        self.deferred_operands[self.deferred_operands_size] = .{
+            .address = addr,
+            .label_name = label,
+        };
+        self.deferred_operands_size += 1;
+    }
+};
+
 pub const Trap = error{
     DivisionByZero,
     IllegalInstruction,
@@ -107,20 +153,17 @@ pub const Inst = struct {
 };
 
 pub const Bm = struct {
-    stack: [stack_capacity]Word = [_]Word{0} ** stack_capacity,
+    stack: [limits.stack]Word = [_]Word{0} ** limits.stack,
     stack_size: Word = 0,
 
-    program: [program_capacity]Inst = undefined,
+    program: [limits.program]Inst = undefined,
     program_size: Word = 0,
     ip: Word = 0,
 
     halt: bool = false,
 
-    const stack_capacity = 1024;
-    const program_capacity = 1024;
-
-    fn pushInst(self: *@This(), inst: Inst) void {
-        self.program[self.program_size] = inst;
+    pub fn pushInst(self: *@This(), inst: Inst) void {
+        self.program[@intCast(usize, self.program_size)] = inst;
         self.program_size += 1;
     }
 
@@ -145,7 +188,7 @@ pub const Bm = struct {
         switch (inst.kind) {
             .nop => self.ip += 1,
             .push => {
-                if (self.stack_size == stack_capacity)
+                if (self.stack_size == limits.stack)
                     return Trap.StackOverflow;
                 self.peekMut(0).* = inst.operand;
                 self.stack_size += 1;
@@ -264,3 +307,6 @@ pub const Bm = struct {
         ));
     }
 };
+
+pub var machine = Bm{};
+pub var lt = LabelTable{};

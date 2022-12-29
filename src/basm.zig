@@ -1,43 +1,52 @@
 const std = @import("std");
 const bm = @import("bm.zig");
 const arg = @import("arg.zig");
+const str = @import("str.zig");
 
-var machine = bm.Bm{};
-
-fn translateLine(line: []const u8) !?bm.Inst {
+fn translateLine(
+    machine: *const bm.Bm,
+    lt: *bm.LabelTable,
+    line: []const u8,
+) !?bm.Inst {
     var it = std.mem.tokenize(u8, line, &std.ascii.whitespace);
-    const inst_name = it.next() orelse return null;
-
+    var inst_name = it.next() orelse return null;
     if (inst_name[0] == '#') return null;
+
+    if (str.charBeforeEnd(inst_name, 1) == ':') {
+        // label
+        lt.push(str.beforeEnd(inst_name, 1), machine.program_size);
+        inst_name = it.next() orelse return null;
+    }
 
     var result: bm.Inst = undefined;
 
+    const needsOperand = struct {
+        fn needsOperand(token_it: *std.mem.TokenIterator(u8), inst: []const u8) ![]const u8 {
+            return token_it.next() orelse {
+                std.debug.print("ERROR: `{s}` requires an argument\n", .{inst});
+                return error.Parse;
+            };
+        }
+    }.needsOperand;
+
     if (std.mem.eql(u8, inst_name, "push")) {
-        const operand_str = it.next() orelse
-            // TODO
-            unreachable;
+        const operand_str = try needsOperand(&it, inst_name);
         const operand = std.fmt.parseInt(bm.Word, operand_str, 10) catch |e| {
             std.debug.print("ERROR: `{s}` is not a number\n", .{operand_str});
             return e;
         };
         result = bm.Inst.push(operand);
     } else if (std.mem.eql(u8, inst_name, "dup")) {
-        const operand_str = it.next() orelse
-            // TODO
-            unreachable;
+        const operand_str = try needsOperand(&it, inst_name);
         const operand = std.fmt.parseInt(bm.Word, operand_str, 10) catch |e| {
             std.debug.print("ERROR: `{s}` is not a number\n", .{operand_str});
             return e;
         };
         result = bm.Inst.dup(operand);
     } else if (std.mem.eql(u8, inst_name, "jmp")) {
-        const operand_str = it.next() orelse
-            // TODO
-            unreachable;
-        const operand = std.fmt.parseInt(bm.Word, operand_str, 10) catch |e| {
-            std.debug.print("ERROR: `{s}` is not a number\n", .{operand_str});
-            return e;
-        };
+        const operand_str = try needsOperand(&it, inst_name);
+        const operand = 0;
+        lt.pushDeferredOperand(machine.program_size, operand_str);
         result = bm.Inst.jmp(operand);
     } else if (std.mem.eql(u8, inst_name, "plus")) {
         result = bm.Inst.plus;
@@ -66,14 +75,21 @@ fn translateLine(line: []const u8) !?bm.Inst {
     return result;
 }
 
-fn translateAsm(source: []const u8, program: []bm.Inst) !bm.Word {
+fn translateAsm(source: []const u8, machine: *bm.Bm, lt: *bm.LabelTable) !void {
+    machine.program_size = 0;
     var source_iter = std.mem.tokenize(u8, source, "\r\n");
-    var program_size: usize = 0;
     while (source_iter.next()) |line| {
-        program[program_size] = try translateLine(line) orelse continue;
-        program_size += 1;
+        machine.pushInst(try translateLine(machine, lt, line) orelse continue);
     }
-    return @intCast(bm.Word, program_size);
+
+    for (lt.deferred_operands[0..lt.deferred_operands_size]) |do| {
+        if (lt.findLabel(do.label_name)) |label| {
+            machine.program[@intCast(usize, do.address)].operand = label.address;
+        } else {
+            std.debug.print("ERROR: unknown jump to `{s}`\n", .{do.label_name});
+            return error.UnknownLabel;
+        }
+    }
 }
 
 pub fn main() void {
@@ -105,6 +121,6 @@ fn run() !void {
         std.math.maxInt(usize),
     );
     defer a.free(source_code);
-    machine.program_size = try translateAsm(source_code, &machine.program);
-    try machine.saveProgramToFile(out_path);
+    try translateAsm(source_code, &bm.machine, &bm.lt);
+    try bm.machine.saveProgramToFile(out_path);
 }

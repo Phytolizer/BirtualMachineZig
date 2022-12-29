@@ -1,7 +1,8 @@
-# comment
+# first 2 Fibonacci numbers
     push 0
-    push 1      # to the side
+    push 1
+loop:
     dup 0
     dup 2
     plus
-    jmp 2
+    jmp loop
