@@ -42,13 +42,38 @@ fn translateLine(
         }
     }.f;
 
-    if (std.mem.eql(u8, inst_name, "push")) {
-        const operand = try needsNumberOperand(&it, inst_name);
-        result = bm.Inst.push(operand);
-    } else if (std.mem.eql(u8, inst_name, "dup")) {
-        const operand = try needsNumberOperand(&it, inst_name);
-        result = bm.Inst.dup(operand);
-    } else if (std.mem.eql(u8, inst_name, "jmp")) {
+    const InstDef = struct {
+        fn T(comptime operands: usize) type {
+            return struct {
+                name: []const u8,
+                val: switch (operands) {
+                    0 => bm.Inst,
+                    1 => *const fn (operand: bm.Word) bm.Inst,
+                    else => unreachable,
+                },
+
+                fn new(comptime name: []const u8) @This() {
+                    return .{
+                        .name = name,
+                        .val = @field(bm.Inst, name),
+                    };
+                }
+            };
+        }
+    }.T;
+
+    const defs0 = [_]InstDef(0){
+        InstDef(0).new("plus"),
+        InstDef(0).new("halt"),
+        InstDef(0).new("nop"),
+    };
+
+    const defs1 = [_]InstDef(1){
+        InstDef(1).new("push"),
+        InstDef(1).new("dup"),
+    };
+
+    if (std.mem.eql(u8, inst_name, "jmp")) {
         const operand = try needsOperand(&it, inst_name);
         if (std.fmt.parseInt(bm.Word, operand, 10)) |operand_num| {
             result = bm.Inst.jmp(operand_num);
@@ -56,11 +81,21 @@ fn translateLine(
             basm.pushDeferredOperand(machine.program_size, operand);
             result = bm.Inst.jmp(0);
         }
-    } else if (std.mem.eql(u8, inst_name, "plus")) {
-        result = bm.Inst.plus;
-    } else if (std.mem.eql(u8, inst_name, "halt")) {
-        result = bm.Inst.halt;
-    } else {
+    } else findDef: {
+        for (defs1) |d1| {
+            if (std.mem.eql(u8, d1.name, inst_name)) {
+                const operand = try needsNumberOperand(&it, inst_name);
+                result = d1.val(operand);
+                break :findDef;
+            }
+        }
+
+        for (defs0) |d0| {
+            if (std.mem.eql(u8, d0.name, inst_name)) {
+                result = d0.val;
+                break :findDef;
+            }
+        }
         return parseErr("`{s}` is not a valid instruction name", .{inst_name});
     }
 
