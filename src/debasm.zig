@@ -37,10 +37,10 @@ fn run() !void {
     for (machine.program[0..@intCast(usize, machine.program_size)]) |inst| {
         switch (inst.kind) {
             .nop,
-            .plus,
-            .minus,
-            .mult,
-            .div,
+            .plusi,
+            .minusi,
+            .multi,
+            .divi,
             .eq,
             .halt,
             .print_debug,
