@@ -63,7 +63,7 @@ fn translateLine(
     }.T;
 
     const defs0 = [_]InstDef(0){
-        InstDef(0).new("plus"),
+        InstDef(0).new("plusi"),
         InstDef(0).new("halt"),
         InstDef(0).new("nop"),
     };

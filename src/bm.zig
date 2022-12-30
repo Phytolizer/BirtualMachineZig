@@ -125,10 +125,10 @@ pub const Inst = struct {
     const Kind = enum(usize) {
         nop,
         push,
-        plus,
-        minus,
-        mult,
-        div,
+        plusi,
+        minusi,
+        multi,
+        divi,
         jmp,
         jmp_if,
         eq,
@@ -147,10 +147,10 @@ pub const Inst = struct {
         return .{ .kind = .push, .operand = operand };
     }
 
-    pub const plus = @This(){ .kind = .plus };
-    pub const minus = @This(){ .kind = .minus };
-    pub const mult = @This(){ .kind = .mult };
-    pub const div = @This(){ .kind = .div };
+    pub const plusi = @This(){ .kind = .plusi };
+    pub const minusi = @This(){ .kind = .minusi };
+    pub const multi = @This(){ .kind = .multi };
+    pub const divi = @This(){ .kind = .divi };
 
     pub fn jmp(operand: Word) @This() {
         return .{ .kind = .jmp, .operand = operand };
@@ -209,28 +209,28 @@ pub const Bm = struct {
                 self.stack_size += 1;
                 self.ip += 1;
             },
-            .plus => {
+            .plusi => {
                 if (self.stack_size < 2)
                     return Trap.StackUnderflow;
                 self.peekMut(2).as_u64 += self.peek(1).as_u64;
                 self.stack_size -= 1;
                 self.ip += 1;
             },
-            .minus => {
+            .minusi => {
                 if (self.stack_size < 2)
                     return Trap.StackUnderflow;
                 self.peekMut(2).as_u64 -= self.peek(1).as_u64;
                 self.stack_size -= 1;
                 self.ip += 1;
             },
-            .mult => {
+            .multi => {
                 if (self.stack_size < 2)
                     return Trap.StackUnderflow;
                 self.peekMut(2).as_u64 *= self.peek(1).as_u64;
                 self.stack_size -= 1;
                 self.ip += 1;
             },
-            .div => {
+            .divi => {
                 if (self.stack_size < 2)
                     return Trap.StackUnderflow;
                 if (self.peek(1).as_u64 == 0)
