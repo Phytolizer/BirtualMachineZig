@@ -35,21 +35,10 @@ fn run() !void {
     try machine.loadProgramFromFile(in_path);
 
     for (machine.program[0..@intCast(usize, machine.program_size)]) |inst| {
-        switch (inst.kind) {
-            .nop,
-            .plusi,
-            .minusi,
-            .multi,
-            .divi,
-            .eq,
-            .halt,
-            .print_debug,
-            => out("{s}", .{inst.kind.name()}),
-            .push,
-            .dup,
-            .jmp,
-            .jmp_if,
-            => out("{s} {d}", .{ inst.kind.name(), inst.operand.as_i64 }),
+        if (inst.kind.hasOperand()) {
+            out("{s} {d}", .{ inst.kind.name(), inst.operand.as_i64 });
+        } else {
+            out("{s}", .{inst.kind.name()});
         }
     }
 }

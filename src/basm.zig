@@ -42,37 +42,6 @@ fn translateLine(
         }
     }.f;
 
-    const InstDef = struct {
-        fn T(comptime operands: usize) type {
-            return struct {
-                name: []const u8,
-                val: switch (operands) {
-                    0 => bm.Inst,
-                    1 => *const fn (operand: bm.Word) bm.Inst,
-                    else => unreachable,
-                },
-
-                fn new(comptime name: []const u8) @This() {
-                    return .{
-                        .name = name,
-                        .val = @field(bm.Inst, name),
-                    };
-                }
-            };
-        }
-    }.T;
-
-    const defs0 = [_]InstDef(0){
-        InstDef(0).new("plusi"),
-        InstDef(0).new("halt"),
-        InstDef(0).new("nop"),
-    };
-
-    const defs1 = [_]InstDef(1){
-        InstDef(1).new("push"),
-        InstDef(1).new("dup"),
-    };
-
     if (std.mem.eql(u8, inst_name, "jmp")) {
         const operand = try needsOperand(&it, inst_name);
         if (std.fmt.parseInt(u64, operand, 10)) |operand_num| {
@@ -82,20 +51,41 @@ fn translateLine(
             result = bm.Inst.jmp(.{ .as_u64 = 0 });
         }
     } else findDef: {
-        for (defs1) |d1| {
-            if (std.mem.eql(u8, d1.name, inst_name)) {
-                const operand = try needsNumberOperand(&it, inst_name);
-                result = d1.val(.{ .as_i64 = operand });
+        inline for (std.meta.fields(bm.Inst.Kind)) |fld| {
+            const getVal = struct {
+                const Error = error{Parse};
+                fn f(comptime hasOperand: bool) fn (
+                    token_it: *std.mem.TokenIterator(u8),
+                    name: []const u8,
+                ) Error!bm.Inst {
+                    return if (hasOperand)
+                        struct {
+                            fn g(
+                                token_it: *std.mem.TokenIterator(u8),
+                                name: []const u8,
+                            ) Error!bm.Inst {
+                                const operand = try needsNumberOperand(token_it, name);
+                                return @field(bm.Inst, fld.name)(.{ .as_i64 = operand });
+                            }
+                        }.g
+                    else
+                        struct {
+                            fn g(
+                                _: *std.mem.TokenIterator(u8),
+                                _: []const u8,
+                            ) Error!bm.Inst {
+                                return @field(bm.Inst, fld.name);
+                            }
+                        }.g;
+                }
+            }.f;
+            if (std.mem.eql(u8, inst_name, fld.name)) {
+                const k = @field(bm.Inst.Kind, fld.name);
+                result = try getVal(k.hasOperand())(&it, inst_name);
                 break :findDef;
             }
         }
 
-        for (defs0) |d0| {
-            if (std.mem.eql(u8, d0.name, inst_name)) {
-                result = d0.val;
-                break :findDef;
-            }
-        }
         return parseErr("`{s}` is not a valid instruction name", .{inst_name});
     }
 

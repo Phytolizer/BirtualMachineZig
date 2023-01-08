@@ -122,7 +122,7 @@ pub const Inst = struct {
     kind: Kind,
     operand: Word = .{ .as_u64 = 0 },
 
-    const Kind = enum(usize) {
+    pub const Kind = enum(usize) {
         nop,
         push,
         plusi,
@@ -139,6 +139,13 @@ pub const Inst = struct {
         pub fn name(self: @This()) []const u8 {
             return instKindNames[@enumToInt(self)];
         }
+
+        pub fn hasOperand(comptime self: @This()) bool {
+            return switch (self) {
+                .push, .dup, .jmp, .jmp_if => true,
+                else => false,
+            };
+        }
     };
 
     pub const nop = @This(){ .kind = .nop };
@@ -151,17 +158,18 @@ pub const Inst = struct {
     pub const minusi = @This(){ .kind = .minusi };
     pub const multi = @This(){ .kind = .multi };
     pub const divi = @This(){ .kind = .divi };
+    pub const eq = @This(){ .kind = .eq };
 
     pub fn jmp(operand: Word) @This() {
         return .{ .kind = .jmp, .operand = operand };
     }
 
-    pub fn jmpIf(operand: Word) @This() {
+    pub fn jmp_if(operand: Word) @This() {
         return .{ .kind = .jmp_if, .operand = operand };
     }
 
     pub const halt = @This(){ .kind = .halt };
-    pub const printDebug = @This(){ .kind = .print_debug };
+    pub const print_debug = @This(){ .kind = .print_debug };
     pub fn dup(operand: Word) Inst {
         return .{ .kind = .dup, .operand = operand };
     }
